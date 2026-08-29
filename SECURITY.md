@@ -2,12 +2,13 @@
 
 ## Scope
 
-This repository is a **research scaffold**, not a production system. Policy command authentication is formally specified using **ChaCha20-Poly1305 AEAD** (RFC 8439) implemented via mbedTLS (`common/include/cldt/cldt_auth.h`, `common/src/cldt_auth.c`):
+This repository is a **research scaffold**, not a production system. Policy command authentication is specified to use **ChaCha20-Poly1305 AEAD** (RFC 8439) with an mbedTLS backend (`common/include/cldt/cldt_auth.h`, `common/src/cldt_auth.c`). At the current scaffold stage, the interface is defined and implementation stubs return `CLDT_ERR_NOT_IMPLEMENTED`.
 
-- **Key Isolation:** 256-bit pre-shared keys are stored exclusively in Non-Volatile Storage (NVS) on the ESP32 gateway/endpoints and in git-ignored `.env` on the host. Keys are never committed to manifests or Git history.
-- **Nonce Construction:** Every command uses a unique 12-byte network-order nonce derived from big-endian `run_id` (64-bit) and `policy_epoch` (32-bit), guaranteeing strict per-command nonce uniqueness under the active key. Replay and validity protection is enforced by the full stateful validation contract: matching `run_id`, active `boot_id`, strictly monotonic epoch (`policy_epoch > applied_epoch`), non-expired TTL, and local gateway/endpoint limits.
-- **Verification:** The 16-byte Poly1305 tag covers frame header bytes 0–51 as Associated Authenticated Data (AAD) and the 80-byte policy payload.
-- **Known-Answer Verification:** RFC 8439 §2.8.2 standard test vectors are integrated for testing before hardware actuation.
+- **Key Isolation:** 256-bit pre-shared keys are stored in Non-Volatile Storage (NVS) on the ESP32 gateway/endpoints and in git-ignored `.env` on the host. Keys are never committed to manifests or Git history.
+- **Nonce Invariant:** The tuple used to derive an AEAD nonce must never repeat under the same pre-shared key. The normative design uses a 12-byte network-order nonce formed by `run_id` (64-bit) and `policy_epoch` (32-bit); this requires that `run_id` is unique per key and `policy_epoch` is strictly monotonic within a run.
+- **Replay Protection:** Replay and validity protection is enforced by the complete stateful validation contract: matching `run_id`, active `boot_id`, strictly monotonic epoch (`policy_epoch > applied_epoch`), non-expired TTL, and local gateway/endpoint limits.
+- **Wire Representation:** Under the v1 wire format, policy command payload bytes (bytes 72–151) remain in plaintext on the wire and are authenticated alongside header AAD (bytes 0–51) by the 16-byte Poly1305 tag (bytes 56–71). If full payload ciphertext confidentiality is required in a future revision, the wire layout decision must be frozen before implementation.
+- **Known-Answer Verification:** RFC 8439 §2.8.2 known-answer test vectors must pass unit testing before authenticated hardware actuation is enabled.
 
 ## Reporting a Vulnerability
 

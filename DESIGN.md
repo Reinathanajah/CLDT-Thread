@@ -80,7 +80,7 @@ The source tree is arranged around ownership rather than around a user interface
 | `host/estimator.*` and `host/twin_model.*` | State estimation, shadow prediction, and scoring across 3 models | Sending a policy directly to a device |
 | `host/fidelity_gate.*` | Fail-closed decision machine driven by model residuals and Kalman covariance | Policy serialization, network I/O, or edge enforcement |
 | `host/policy.*` | Proposal generation and host-side static bounds | Applying a proposal to physical hardware |
-| `host/analysis/reproduce.py` | Automated pipeline for two-stage item lifecycle audit, model scoring, and confidence intervals | Modifying raw traces or manifests |
+| `host/analysis/reproduce.py` | Scaffold for the planned post-hoc reproduction pipeline (lifecycle audit, model scoring, confidence intervals) | Modifying raw traces or manifests |
 | `firmware/gateway/main/` | RCP/Thread bridge, OpenThread MAC diagnostics (`thread_diagnostic.*`), local guard, backhaul, boot lifecycle, and gateway trace | Model fitting or hidden remote fallback dependency |
 | `firmware/endpoint/main/` | Local workload, EDF deadline queue (`deadline_queue.*`), trace, time mapping, transport, and INA219 power probe (`power_probe.*`) | Authority to change global experiment parameters |
 
@@ -163,7 +163,7 @@ Version 1 uses a fixed 72-byte header. The offsets below are normative and are a
 | 52–55 | CRC-32C (Castagnoli polynomial `0x1EDC6F41`) |
 | 56–71 | Authentication tag (16-byte Poly1305 tag) |
 
-A version 1 policy command uses an 80-byte payload in this exact order: four 32-bit release periods, four 32-bit phase offsets, four 16-bit burst limits, four 16-bit batch sizes, four 32-bit token rates, a 32-bit epoch, a 64-bit gateway issue time, and a 32-bit TTL. The payload epoch must equal the header epoch. This layout is defined independently of `sizeof(cldt_policy_t)` so compiler padding cannot alter the wire format.
+A version 1 policy command uses an 80-byte payload in this exact order: four 32-bit release periods, four 32-bit phase offsets, four 16-bit burst limits, four 16-bit batch sizes, four 32-bit token rates, a 32-bit epoch, a 64-bit gateway issue time, and a 32-bit TTL. The payload epoch must equal the header epoch. Under version 1, policy command payload bytes (bytes 72–151) remain in plaintext on the wire and are authenticated alongside header bytes 0–51 (AAD) by the 16-byte Poly1305 tag. If full payload ciphertext confidentiality is required in a future revision, that wire representation decision must be frozen before implementation.
 
 | Field Or Concept | Why It Exists | Required Validation |
 |---|---|---|
@@ -173,7 +173,7 @@ A version 1 policy command uses an 80-byte payload in this exact order: four 32-
 | Sequence and policy epoch | Make duplicate and out-of-order inputs observable | Policy epoch must increase strictly; reject replay |
 | Local transmit time and deadline | Support queue/deadline accounting | Deadline must be internally valid and interpreted with clock uncertainty |
 | CRC-32C | Detect accidental byte corruption | Verify over frame bytes 0–51 with integrity fields zeroed before publishing |
-| Authentication tag | Authenticate command origin and verify payload integrity | ChaCha20-Poly1305 AEAD (RFC 8439): 12-byte nonce (`run_id` + `policy_epoch`), 256-bit PSK in NVS, covers header bytes 0–51 as AAD |
+| Authentication tag | Authenticate command origin and verify payload integrity | ChaCha20-Poly1305 AEAD (RFC 8439): 12-byte nonce (`run_id` + `policy_epoch`), 256-bit PSK in NVS, covers header bytes 0–51 as AAD. Nonce tuple must never repeat under the same key. |
 | TTL | Ensures an old optimization cannot persist indefinitely | Reject zero, expired, and implausibly long TTL values |
 
 ## Control Profile Contract

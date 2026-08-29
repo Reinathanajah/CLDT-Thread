@@ -27,7 +27,7 @@ $$
 - **Null Hypothesis ($H_0$):** Cross-layer features do not improve held-out prediction accuracy beyond the predeclared engineering relevance threshold of 15% ($H_0: \Delta \le 0.15$).
 - **Alternative Hypothesis ($H_1$):** Cross-layer features achieve a meaningful reduction in held-out relative P95 error exceeding the threshold ($H_1: \Delta > 0.15$).
 
-Failing to reject $H_0$ constitutes an admissible negative finding, demonstrating that cross-layer telemetry does not justify additional instrumentation overhead under the tested regime.
+Failing to reject $H_0$ constitutes an admissible negative finding; it establishes that the experiment did not observe an improvement exceeding the predeclared 15% threshold under the tested conditions.
 
 **Experimental Units and Uncertainty Estimation:**
 Independent physical **runs** (with randomized treatment order and distinct boot cycles) serve as the primary experimental unit for between-condition comparisons. For time-series uncertainty estimation within a continuous run, consecutive observation windows exhibit temporal autocorrelation; standard IID resampling is invalid. Scored horizons are resampled using a **block bootstrap** (1,000 resamples), with block length determined by the empirical autocorrelation decay of prediction residuals, to construct 95% confidence intervals on P95 error and interval coverage.
@@ -133,6 +133,10 @@ Do not report one-way latency without clock uncertainty beside it. Do not report
 
 The project compares models rather than merely training one. A calibration block contains a stable baseline and designated pilot/load conditions used to fit parameters and choose the profile’s model-related limits. A held-out block contains a condition whose raw traces are never used to tune those parameters, select features, or decide thresholds. The `load-step.json` manifest is designed for this purpose.
 
+To isolate the contribution of cross-layer telemetry, both candidate models ($M_{\text{network}}$ and $M_{\text{cross}}$) share the same underlying model family ($f_\theta$), loss formulation, calibration data, and held-out horizons. Both realizations must be frozen before measurement runs used for final scoring, and their precise state/observation matrices are recorded as calibration artifacts in the evidence bundle.
+
+**Temporal Availability and Target Leakage Prevention:** A prediction issued at time $t$ for a future evaluation horizon $[t_0, t_1]$ ($t_0 \ge t$) may use only features and observations available at or before issuance time $t$. Historical features such as past delivery outcomes, MAC retry deltas, and queue depths refer strictly to observations completed prior to $t$; no outcome or metric from the future prediction horizon may appear in the predictor inputs.
+
 For every scored horizon, retain the model revision, feature-set label, prediction issuance time, prediction horizon, predicted interval, source evidence bundle, and observed outcome. Score the network-only and cross-layer model on the exact same horizons. If the feature set or code changes, start a new model revision and do not merge scores across revisions as though they were one treatment.
 
 The fidelity gate is evaluated on completed prior horizons. It must never look at the future observed outcome of the policy it is deciding to issue. A model that is frequently “trusted” but wrong is not a successful controller; a gate that abstains frequently may be correct if it is doing so for documented data-quality reasons.
@@ -210,7 +214,7 @@ Each run directory contains an immutable evidence package:
 - calibration and rail-boundary record for power runs; and
 - terminal status plus operator notes.
 
-A standalone reproduction script ([host/analysis/reproduce.py](host/analysis/reproduce.py)) takes a run directory and autonomously executes the two-stage item-level lifecycle audit, fits the naive baseline, network-only, and cross-layer models on the calibration block, scores on the held-out block, calculates 95% bootstrap confidence intervals, and generates the gate characterization curve. A reviewer can reproduce all reported numbers with a single command.
+[host/analysis/reproduce.py](host/analysis/reproduce.py) is the scaffold for the planned post-hoc reproduction pipeline. Once fully implemented, it is designed to take a completed run directory, verify the manifest digest and lifecycle event reconciliation, fit the naive, network-only, and cross-layer models on the manifest-defined calibration block, score on held-out horizons, compute 95% block-bootstrap confidence intervals, and output the primary metric table.
 
 ## Six-And-A-Half-Week Execution Plan
 

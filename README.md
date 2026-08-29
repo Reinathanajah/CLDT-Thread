@@ -15,7 +15,7 @@ The current repository is an implementation-ready research scaffold. It defines 
 | Area | Present Now | Not Yet Claimed |
 |---|---|---|
 | Common contracts | C headers and initial scaffolds for frames, timestamps, trace records, metrics, statuses, ChaCha20-Poly1305 auth (`cldt_auth.h`), CRC-32C (`cldt_crc32c.h`), and control profiles | A validated production protocol implementation |
-| Host application | Coordinator, Kalman filter state estimator (`kalman.h`), twin model, fidelity gate, policy generator, broker adapter, recorder, manifest parser, and `reproduce.py` analysis pipeline | A runnable host control loop or a real broker session |
+| Host application | Coordinator, Kalman filter state estimator (`kalman.h`), twin model, fidelity gate, policy generator, broker adapter, recorder, manifest parser, and `reproduce.py` reproduction scaffold | A runnable host control loop or a real broker session |
 | ESP32 firmware | Separate ESP-IDF projects: S3 gateway (with OpenThread MAC diagnostics `thread_diagnostic.h`) and C6 endpoint (with EDF deadline queue `deadline_queue.h` and INA219 power probe `power_probe.h`) | A flashed Thread mesh, MQTT bridge, BLE provisioning, or policy application |
 | Experiments | Eight schema-valid planning manifests, each intentionally incomplete | A run-ready manifest or captured result |
 | Verification | CMake layout and test skeletons that return the documented skip code | Passing unit, integration, hardware, or statistical tests |
@@ -118,7 +118,7 @@ An existing laptop and an existing private 2.4 GHz Wi-Fi access point are prereq
 | Location | Responsibility |
 |---|---|
 | [common/](common/) | Portable C contracts: protocol framing (`cldt_protocol.h`), ChaCha20-Poly1305 auth (`cldt_auth.h`), CRC-32C (`cldt_crc32c.h`), clock sync, event traces, metrics, status codes, and control profiles |
-| [host/](host/) | Host-side coordinator, manifest conversion, recorder, broker adapter, Kalman filter estimator (`kalman.h`), twin model, fidelity gate, policy interfaces, and reproduction script (`analysis/reproduce.py`) |
+| [host/](host/) | Host-side coordinator, manifest conversion, recorder, broker adapter, Kalman filter estimator (`kalman.h`), twin model, fidelity gate, policy interfaces, and reproduction scaffold (`analysis/reproduce.py`) |
 | [firmware/gateway/](firmware/gateway/) | ESP-IDF S3 gateway firmware: OpenThread MAC diagnostics (`thread_diagnostic.h`), RCP/Thread bridge, backhaul, provisioning, and edge policy guard |
 | [firmware/endpoint/](firmware/endpoint/) | ESP-IDF C6 endpoint firmware: EDF deadline queue (`deadline_queue.h`), workload generator, OpenThread transport, trace, and INA219 power probe (`power_probe.h`) |
 | [experiments/](experiments/) | Eight strict JSON planning templates that conform to the repository schema |

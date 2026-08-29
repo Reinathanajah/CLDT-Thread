@@ -20,11 +20,13 @@ ctest --test-dir build --output-on-failure
 
 At the scaffold stage, all four test executables return skip code 77. A green build proves interface consistency, not a working digital twin.
 
-To run the analysis and evidence reproduction pipeline against a run directory:
+`host/analysis/reproduce.py` is the CLI entry point and scaffold for the planned post-hoc reproduction pipeline:
 
 ```bash
 python host/analysis/reproduce.py results/sample_run/
 ```
+
+At the scaffold stage, function stubs contain TODO markers and must be implemented before experimental scoring.
 
 ## Manifest Validation
 
