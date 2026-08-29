@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+title: "CLDT-Thread: Fidelity-Gated Cross-Layer Digital Twin for Thread IoT"
+message: "If you use this work, please cite it using the metadata below."
+type: software
+authors:
+  - given-names: Reinathan Ezkhiel
+    family-names: Kurniawan
+    alias: Reinathanajah
+repository-code: "https://github.com/Reinathanajah/CLDT-Thread"
+license: MIT
+keywords:
+  - digital-twin
+  - iot
+  - thread
+  - esp32
+  - freertos
+  - openthread
+  - hardware-in-the-loop
+  - embedded-systems

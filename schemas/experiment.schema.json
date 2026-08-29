@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Reinathanajah/CLDT-Thread/main/schemas/experiment.schema.json",
+  "$id": "https://github.com/Reinathanajah/CLDT-Thread/blob/main/schemas/experiment.schema.json",
   "title": "CLDT Experiment Manifest",
   "description": "A deliberately small, two-stage contract. A template may retain null decisions and actionable _todo entries; a ready manifest may not.",
   "type": "object",

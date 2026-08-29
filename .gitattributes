@@ -12,3 +12,9 @@
 CMakeLists.txt text eol=lf
 *.defaults text eol=lf
 *.projbuild text eol=lf
+*.cff text eol=lf
+
+# Linguist overrides: keep GitHub language classification accurate.
+experiments/*.json linguist-vendored
+experiments/authoring/*.jsonc linguist-vendored
+schemas/*.json linguist-vendored
