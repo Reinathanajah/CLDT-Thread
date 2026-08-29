@@ -8,6 +8,7 @@ add_executable(cldt_host
     policy.c
     broker_io.c
     run_recorder.c
+    kalman.c
 )
 
 target_include_directories(cldt_host PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

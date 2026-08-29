@@ -4,6 +4,8 @@ set(CLDT_COMMON_SOURCES
     "src/cldt_control_profile.c"
     "src/cldt_metrics.c"
     "src/cldt_event_trace.c"
+    "src/cldt_auth.c"
+    "src/cldt_crc32c.c"
 )
 
 if(COMMAND idf_component_register)
