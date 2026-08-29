@@ -72,15 +72,17 @@ The source tree is arranged around ownership rather than around a user interface
 
 | Location | Owner And Responsibility | Must Not Own |
 |---|---|---|
-| `common/include/cldt/` | Stable platform-neutral contracts for status, types, protocol, clock, trace, metrics, and control profiles | ESP-IDF handles, broker handles, filesystem paths, or dashboard state |
+| `common/include/cldt/` | Stable platform-neutral contracts for status, types, protocol framing (`cldt_protocol.h`), ChaCha20-Poly1305 auth (`cldt_auth.h`), CRC-32C (`cldt_crc32c.h`), clock sync, trace, metrics, and control profiles | ESP-IDF handles, broker handles, filesystem paths, or dashboard state |
 | `common/src/` | Deterministic, allocation-free implementations of those contracts | Radio I/O, task creation, or JSON parsing |
 | `host/experiment_config.*` | Conversion of a schema-valid ready manifest into bounded runtime configuration | Acceptance of template manifests or secret storage |
 | `host/run_recorder.*` | New append-only evidence directory and one terminal run status | Modification or deletion of prior run evidence |
-| `host/estimator.*` and `host/twin_model.*` | State estimation, prediction, and scoring | Sending a policy directly to a device |
-| `host/fidelity_gate.*` | Fail-closed decision about whether the model may be used | Policy serialization, network I/O, or edge enforcement |
+| `host/kalman.*` | 5-state discrete-time linear Kalman filter state estimation with covariance uncertainty | Policy actuation or direct network I/O |
+| `host/estimator.*` and `host/twin_model.*` | State estimation, shadow prediction, and scoring across 3 models | Sending a policy directly to a device |
+| `host/fidelity_gate.*` | Fail-closed decision machine driven by model residuals and Kalman covariance | Policy serialization, network I/O, or edge enforcement |
 | `host/policy.*` | Proposal generation and host-side static bounds | Applying a proposal to physical hardware |
-| `firmware/gateway/main/` | RCP/Thread bridge, local guard, backhaul, boot lifecycle, and gateway trace | Model fitting or hidden remote fallback dependency |
-| `firmware/endpoint/main/` | Local workload, deadline queue, trace, time mapping, transport, and optional power probe | Authority to change global experiment parameters |
+| `host/analysis/reproduce.py` | Automated pipeline for two-stage item lifecycle audit, model scoring, and confidence intervals | Modifying raw traces or manifests |
+| `firmware/gateway/main/` | RCP/Thread bridge, OpenThread MAC diagnostics (`thread_diagnostic.*`), local guard, backhaul, boot lifecycle, and gateway trace | Model fitting or hidden remote fallback dependency |
+| `firmware/endpoint/main/` | Local workload, EDF deadline queue (`deadline_queue.*`), trace, time mapping, transport, and INA219 power probe (`power_probe.*`) | Authority to change global experiment parameters |
 
 The source distinction is a practical safeguard. For example, the host model cannot secretly apply a policy because `cldt_twin_model_predict()` is side-effect free. Conversely, the gateway guard cannot make a favorable model decision because it receives only a proposal and locally validates it.
 
@@ -92,15 +94,27 @@ The exact FreeRTOS task implementation is still skeletal. The following ownershi
 
 The gateway lifecycle in `gateway_runtime.h` is explicit: boot, provisioning, Thread formation, idle, warm-up, measurement, cooldown, fallback, and fault. The supervisor is the only task allowed to advance this lifecycle. It creates static queues and event groups before worker tasks run, starts work only after provisioning, RCP, Thread, and backhaul are ready, and requests bounded shutdown at an experiment boundary.
 
-The Thread bridge accepts project datagrams from the Thread side and copies only validated work into `thread_rx_queue`. The aggregator turns device trace records into gateway observations and places them into `observation_queue`. The publisher owns broker/backhaul I/O and drains that queue. The command consumer is the sole writer of the active policy snapshot. It calls `cldt_policy_guard_accept()` before changing state and emits an acknowledgement or rejection record after the critical section is released. The policy guard owns `active_policy` and `applied_epoch`; no other task may modify them.
+The Thread bridge accepts project datagrams from the Thread side and copies only validated work into `thread_rx_queue`. An OpenThread diagnostic adapter (`thread_diagnostic.h`) polls low-level MAC metrics directly from OpenThread's C API on the S3 host via Spinel:
+- `otLinkGetCounters()`: extracts `mTxTotal`, `mTxRetry` (MAC retransmissions), `mTxErrCca` (Clear Channel Assessment failures), `mTxDirectMaxRetryExpiry` (max retry exhaustion), and `mRxErrFcs`.
+- `otThreadGetParentInfo()`: extracts parent RLOC16, inbound link quality (`mLinkQualityIn`), and outbound link quality (`mLinkQualityOut`).
+- `otThreadGetLeaderData()`: extracts partition ID (`mPartitionId`) to detect network partition splits and merges.
+- `otThreadGetDeviceRole()`: detects dynamic Thread role transitions (router, child, leader).
+
+The aggregator turns device trace records and MAC diagnostic deltas into gateway observations and places them into `observation_queue`. The publisher owns broker/backhaul I/O and drains that queue. The command consumer is the sole writer of the active policy snapshot. It calls `cldt_policy_guard_accept()` before changing state and emits an acknowledgement or rejection record after the critical section is released. The policy guard owns `active_policy` and `applied_epoch`; no other task may modify them.
 
 For the SMP build, keep initial affinity minimal and measurable. A reasonable first hypothesis is that Thread/backhaul integration and radio-facing activity remain on one core while aggregation and publishing are pinned or observed on the other. It remains a hypothesis until trace evidence shows reduced queueing or deadline impact. The unicore comparison must use the same source and workload, differing only in the documented scheduler configuration and resulting gateway binary.
 
 ### Endpoint Runtime
 
-The endpoint lifecycle is also explicit: boot, commissioning, attached, idle, running, fallback, and fault. A workload-release task creates logical work items with a `run_id`, `node_id`, `boot_id`, sequence number, traffic class, release time, and deadline. It never blocks on a network operation. A transmitter task removes eligible items from the bounded deadline queue, expires work that is already too late, and passes only the selected item to the Thread transport adapter.
+The endpoint lifecycle is also explicit: boot, commissioning, attached, idle, running, fallback, and fault. A workload-release task creates logical work items with a `run_id`, `node_id`, `boot_id`, sequence number, traffic class, release time, and deadline. It never blocks on a network operation.
 
-The trace task drains local records into a bounded export path. It is intentionally lower priority than the workload and transmitter paths, but its own drops are counted and surfaced; silent loss of instrumentation invalidates a run rather than becoming invisible. The power task exists only when energy measurement is enabled and must make its sampling overhead measurable through a sampler-enabled/sampler-disabled control. The supervisor performs local fallback and may never wait indefinitely for the host.
+The endpoint implements an **Earliest Deadline First (EDF)** queue (`deadline_queue.h`):
+- **Data structure:** Bounded fixed-pool array (no heap allocation) with an index array sorted by absolute `deadline_local_us`.
+- **Insertion & Admission:** Binary search finds the exact position in the deadline order. If the pool is full, admission control compares the incoming deadline against the latest deadline in the queue; the item expiring latest is rejected or evicted, ensuring maximum deadline feasibility (Liu & Layland, 1973).
+- **Periodic Expiry:** A dedicated 10 ms hardware-backed `esp_timer` executes an expiry sweep that purges work whose deadline has passed (`deadline_local_us <= now_local_us`) and compacts the ordering array before late work enters the radio buffer.
+- **Capacity Reservation:** Slots are reserved for `CLDT_TRAFFIC_CONTROL` and `CLDT_TRAFFIC_CRITICAL` streams. For telemetry, older same-source items are coalesced.
+
+The transmitter task pops the earliest-deadline slot from the EDF queue and passes it to the Thread transport adapter. The trace task drains local records into a bounded export path. When energy measurement is enabled, the INA219 power task (`power_probe.h`) samples voltage and current at 12-bit resolution (532 µs conversion) over I2C (`GPIO6`/`GPIO7`), integrating energy $\sum (V \cdot I \cdot \Delta t)$ to report energy per successfully delivered critical item ($\mu\text{J}/\text{item}$).
 
 ### Synchronization Rules
 
@@ -125,7 +139,7 @@ Evidence reconciliation has two mandatory layers. `cldt_metrics_reconcile()` che
 
 ## Wire And Command Contract
 
-The public wire contract is declared in `cldt_types.h` and `cldt_protocol.h`. The implementation does not exist yet, so the following is a required behavior rather than a claim about running firmware.
+The public wire contract is declared in `cldt_types.h` and `cldt_protocol.h`.
 
 Version 1 uses a fixed 72-byte header. The offsets below are normative and are also declared as `CLDT_WIRE_*_OFFSET` constants; multi-byte integers use network byte order.
 
@@ -146,8 +160,8 @@ Version 1 uses a fixed 72-byte header. The offsets below are normative and are a
 | 40–47 | Local deadline |
 | 48–49 | Payload byte count |
 | 50–51 | Reserved; must be zero |
-| 52–55 | CRC-32C |
-| 56–71 | Authentication tag |
+| 52–55 | CRC-32C (Castagnoli $0\text{x}1\text{EDC}6\text{F}41$, ROM-accelerated on ESP32) |
+| 56–71 | Authentication tag (16-byte Poly1305 tag) |
 
 A version 1 policy command uses an 80-byte payload in this exact order: four 32-bit release periods, four 32-bit phase offsets, four 16-bit burst limits, four 16-bit batch sizes, four 32-bit token rates, a 32-bit epoch, a 64-bit gateway issue time, and a 32-bit TTL. The payload epoch must equal the header epoch. This layout is defined independently of `sizeof(cldt_policy_t)` so compiler padding cannot alter the wire format.
 
@@ -158,11 +172,9 @@ A version 1 policy command uses an 80-byte payload in this exact order: four 32-
 | Run ID and boot ID | Bind work to one run and distinguish a post-restart endpoint | Reject a command for another active run |
 | Sequence and policy epoch | Make duplicate and out-of-order inputs observable | Policy epoch must increase strictly |
 | Local transmit time and deadline | Support queue/deadline accounting | Deadline must be internally valid and interpreted with clock uncertainty |
-| CRC-32C | Detect accidental corruption | Verify before publishing decoded data |
-| Authentication tag | Distinguish an authorized command from merely well-formed bytes | Required commands must be authenticated with a documented algorithm and key lifecycle |
+| CRC-32C | Detect accidental corruption | Verify bytes 0–51 before publishing decoded data |
+| Authentication tag | Distinguish an authorized command from forged/corrupted bytes | ChaCha20-Poly1305 (RFC 8439) with 12-byte nonce (`run_id` + `epoch`) and 256-bit PSK stored in NVS |
 | TTL | Ensures an old optimization cannot persist indefinitely | Reject zero, expired, and implausibly long TTL values |
-
-The existing `cldt_authenticator_t` abstraction intentionally keeps cryptographic implementation outside the common framing interface. Before any remote actuation is enabled, the project must choose a maintained platform cryptographic primitive, document the covered bytes and tag verification procedure, keep secrets out of manifests and Git, and add known-answer tests. The interface is not permission to invent an ad-hoc cryptographic algorithm.
 
 ## Control Profile Contract
 
@@ -192,9 +204,14 @@ The host will eventually resolve a named profile from a versioned local registry
 
 ## Fidelity Gate And Fallback
 
-The fidelity gate is not a classifier that tries to say “yes” often. It is a fail-closed state machine with four states defined by `cldt_gate_state_t`: `COLD`, `OBSERVE`, `TRUSTED`, and `ABSTAIN`. It begins cold; it requires enough valid evidence and consecutive passing windows before becoming trusted; a hard failure exits trusted state immediately; recovery requires hysteresis rather than one convenient sample.
+The fidelity gate is not a classifier that tries to say “yes” often. It is a fail-closed state machine with four states defined by `cldt_gate_state_t`: `COLD`, `OBSERVE`, `TRUSTED`, and `ABSTAIN`. It begins cold; it requires enough valid evidence and consecutive passing windows before becoming trusted; a hard failure exits trusted state immediately; recovery requires asymmetric hysteresis rather than one convenient sample.
 
-The host-side gate evaluates observation age, model lag, clock uncertainty, residual error, prediction-interval coverage, calibration-region membership, sample count, and model identity. Its output is only whether actuation may be considered. It never serializes or applies a policy. The gateway’s `cldt_policy_guard_accept()` independently validates active run, strict epoch ordering, local health, TTL, clock uncertainty, total rate, critical-period protection, and bulk burst ceiling. If the host goes away, the guard falls back to its compiled safe policy and records why.
+The host estimator utilizes a **5-state discrete-time linear Kalman filter** (`kalman.h`):
+- **State vector ($n=5$):** $x = [\text{queue\_depth\_A}, \text{queue\_depth\_B}, \text{critical\_pdr}, \text{link\_quality}, \text{mac\_retry\_rate}]^T$.
+- **Covariance matrix ($P$):** Provides principled Bayesian uncertainty. The diagonal element $P[2][2]$ quantifies variance on the critical delivery ratio.
+- **Gate Integration:** If $P[2][2]$ exceeds the calibrated limit, or observation age, model lag, clock uncertainty, residual error, prediction-interval coverage, or calibrated-region bounds fail, the gate immediately transitions to `ABSTAIN`.
+
+The gate output is strictly boolean: whether actuation may be considered. It never serializes or applies a policy. The gateway’s `cldt_policy_guard_accept()` independently validates active run, strict epoch ordering, local health, TTL, clock uncertainty, total rate, critical-period protection, and bulk burst ceiling. If the host goes away, the guard falls back to its compiled safe policy and records why.
 
 This aligns with the basic network-digital-twin problem: interactive real–virtual mapping can support closed-loop control, but policy change must follow adequate analysis and verification rather than treating a model output as inherently safe. [IRTF Network Digital Twin Architecture](https://datatracker.ietf.org/doc/draft-irtf-nmrg-network-digital-twin-arch/)
 

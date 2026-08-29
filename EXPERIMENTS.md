@@ -12,15 +12,21 @@ This distinction follows current network-digital-twin architectural research: tw
 
 ### Primary Question: Does Cross-Layer State Improve Held-Out Prediction?
 
-The central comparison is between two models trained and scored on the same physical system. The network-only model uses network-visible information such as delivery outcome, link/route observations, and traffic load. The cross-layer model receives those inputs plus task release/completion timing, queue depth, queue terminal outcomes, policy epoch, core information where available, and selected power observations. The question is not whether the richer model can fit its own calibration traces better. The question is whether it produces lower error on a predeclared load condition that was not used to tune it.
+The central comparison is a **three-way statistical benchmark** scored on the exact same physical system and held-out horizons:
+1. **Naive Moving-Average Baseline:** A featureless historical moving-average predictor that defines the statistical floor.
+2. **Network-Only Model:** Uses network-visible information such as delivery outcome, link RSSI, and traffic load.
+3. **Cross-Layer Kalman Filter Model:** Receives network-visible metrics plus OpenThread MAC layer telemetry (`mTxRetry` retransmissions, `mTxErrCca` channel busy errors, `mTxDirectMaxRetryExpiry`), endpoint EDF queue depth and preemptive expiry count, parent link quality (`mLinkQualityIn`/`mLinkQualityOut`), and FreeRTOS task/core affinity traces.
 
-The primary outcome is held-out error of predicted critical on-time delivery. A result is useful if it improves prediction while all item accounting is reconciled. A result is equally useful if it does not improve prediction, provided the training/held-out separation and raw evidence are complete.
+The comparison tests a **predeclared null hypothesis**:
+> *The cross-layer Kalman filter model reduces relative P95 prediction error on the held-out load step by at least 15% relative to the network-only model and naive baseline. If it does not, that constitutes an admissible negative finding—not an experimental failure.*
+
+The primary outcome is held-out error of predicted critical on-time delivery ratio with 95% bootstrap confidence intervals (1,000 resamples). A result is equally valuable if cross-layer features do not improve prediction under a given regime, provided training/held-out separation, raw traces, and item accounting are complete.
 
 ### Primary Question: Does Fidelity-Gated Control Fail Safely?
 
 The second primary question asks whether a valid, finite policy is withdrawn when the evidence supporting it becomes stale or invalid. The initial actuator surface is deliberately narrow: reduce bulk traffic rate or burst behavior while preserving a protected critical stream. The stale-observation scenario pauses only the gateway-to-host observation publication path; endpoint traffic and Thread routing continue. The expected result is a recorded gate abstention and edge-local fallback, not a service outage.
 
-The safety outcome is not a favorable performance number. It is **zero invalid policy applications** in the specified negative cases: stale observation, expired command, wrong run ID, duplicate or older epoch, endpoint restart, and local-limit violation.
+The safety outcome is not a favorable performance number. It is **zero invalid policy applications** in the specified negative cases: stale observation, expired command, wrong run ID, duplicate or older epoch, unauthenticated/corrupted payload, endpoint restart, and local-limit violation. Beyond a binary pass/fail, the gate's behavior curve is characterized over time (observation age vs. gate state, hysteresis recovery windows, and Kalman covariance $P[2][2]$ bounds).
 
 ### Extension: What Does ESP32-S3 SMP Change?
 
@@ -161,7 +167,7 @@ Use an application-level publication gate at the gateway or host adapter to paus
 
 ### Restart And Replay
 
-First prove one normal command acceptance. Then restart only the selected endpoint and record a new boot identity. Send old-epoch, expired, and wrong-run commands through the normal gateway path; never bypass authentication or call private apply functions. Every attempt should have a logged reason. The primary result is zero invalid policy applications, not a fast restart graph.
+First prove one normal command acceptance with valid ChaCha20-Poly1305 authentication (RFC 8439) using the active pre-shared key. Then restart only the selected endpoint and record a new boot identity. Send old-epoch, expired, wrong-run, corrupted-tag, and replayed commands through the normal gateway path; never bypass authentication or call private apply functions. Every attempt should have a logged status code and reason (`CLDT_ERR_AUTHENTICATION`, `CLDT_ERR_EXPIRED`, `CLDT_ERR_OUT_OF_ORDER`, `CLDT_ERR_WRONG_RUN`). The primary result is zero invalid policy applications, demonstrating cryptographic and stateful rejection.
 
 ### Topology Shift
 
@@ -175,26 +181,26 @@ Move only the endpoint named in the manifest between two pre-measured, photograp
 | Invalid result | Missing required evidence, counter mismatch, wrong firmware/profile/topology, unexpected second disturbance, or failed command-audit completeness |
 | Interrupted result | Operator, power, or external condition ends the run before terminal collection; preserve partial raw evidence and reason |
 | Excluded observation | Only a predeclared, documented reason may exclude it; retain it in raw data and report the count |
-| Model comparison | Score both models on identical held-out horizons; do not compare separately chosen best runs |
+| Model comparison | Score naive, network-only, and cross-layer models on identical held-out horizons; do not compare separately chosen best runs |
 | Energy comparison | Enforce the same critical-service acceptance condition for every compared profile |
 
 The final report must include negative results, failed safety checks, and invalid runs. The technical reason for an invalid run is often more educational and more credible than an unexplained absence from a chart.
 
-## Evidence Bundle
+## Evidence Bundle And Automated Reproduction
 
-Each run directory should contain, at minimum:
+Each run directory contains an immutable evidence package:
 
-- the original ready manifest and its digest;
-- `versions.json` or equivalent immutable record of source revision, ESP-IDF/upstream revision, build configuration, binary hashes, control-profile/calibration identity, and tool versions;
+- the original ready manifest and its SHA-256 digest;
+- `versions.json` recording source revision, ESP-IDF/upstream revision, build configuration, binary hashes, control-profile/calibration identity, and tool versions;
 - physical topology/placement record and required photographs;
-- raw append-only event stream and any broker capture needed to reconstruct it;
+- raw append-only event stream (`events.csv`) and broker captures;
 - device final counters, trace-drop counts, queue high-water marks, and clock-uncertainty data;
-- command audit containing proposal, acceptance/rejection reason, epoch, TTL, expiry, and fallback records for safety runs;
+- command audit containing proposal, acceptance/rejection reason, epoch, TTL, Poly1305 authentication tags, expiry, and fallback records;
 - model revision, prediction horizons, feature-set label, and derived analysis;
 - calibration and rail-boundary record for power runs; and
 - terminal status plus operator notes.
 
-Raw evidence should remain immutable after terminal status. Derived tables, plots, and reports can be regenerated; raw inputs must not be “cleaned” by deleting inconvenient records.
+A standalone reproduction script ([host/analysis/reproduce.py](host/analysis/reproduce.py)) takes a run directory and autonomously executes the two-stage item-level lifecycle audit, fits the naive baseline, network-only, and cross-layer models on the calibration block, scores on the held-out block, calculates 95% bootstrap confidence intervals, and generates the gate characterization curve. A reviewer can reproduce all reported numbers with a single command.
 
 ## Six-And-A-Half-Week Execution Plan
 

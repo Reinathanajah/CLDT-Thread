@@ -14,9 +14,9 @@ The current tree is an implementation-ready research scaffold, not a simulated d
 
 | Area | Present Now | Not Yet Claimed |
 |---|---|---|
-| Common contracts | C headers for frames, timestamps, trace records, metrics, statuses, and policy data | A validated production protocol implementation |
-| Host application | Coordinator, estimator, model, fidelity-gate, policy, broker, recorder, and manifest-parser interfaces | A runnable host control loop or a real broker session |
-| ESP32 firmware | Separate ESP-IDF project structure for the S3 gateway and C6 endpoint | A flashed Thread mesh, MQTT bridge, BLE provisioning, or policy application |
+| Common contracts | C headers and initial scaffolds for frames, timestamps, trace records, metrics, statuses, ChaCha20-Poly1305 auth (`cldt_auth.h`), CRC-32C (`cldt_crc32c.h`), and control profiles | A validated production protocol implementation |
+| Host application | Coordinator, Kalman filter state estimator (`kalman.h`), twin model, fidelity gate, policy generator, broker adapter, recorder, manifest parser, and `reproduce.py` analysis pipeline | A runnable host control loop or a real broker session |
+| ESP32 firmware | Separate ESP-IDF projects: S3 gateway (with OpenThread MAC diagnostics `thread_diagnostic.h`) and C6 endpoint (with EDF deadline queue `deadline_queue.h` and INA219 power probe `power_probe.h`) | A flashed Thread mesh, MQTT bridge, BLE provisioning, or policy application |
 | Experiments | Eight schema-valid planning manifests, each intentionally incomplete | A run-ready manifest or captured result |
 | Verification | CMake layout and test skeletons that return the documented skip code | Passing unit, integration, hardware, or statistical tests |
 | Documentation | Scope, design, execution protocol, budget, evidence rules, and implementation order | Evidence that the planned system meets them |
@@ -75,12 +75,12 @@ The SMP comparison is a genuine experiment, not a code-style claim. ESP-IDF uses
 
 The target is not a polished dashboard. A fully working result must show a defensible chain of evidence:
 
-1. An endpoint can account for each generated item through a terminal outcome before networking is introduced.
+1. An endpoint can account for each generated item through a terminal outcome before networking is introduced via local EDF queue scheduling.
 2. The Thread topology is attached and its actual roles, parent relationships, firmware identities, and placement are recorded.
-3. Project frames, counters, timestamps, and policy epochs are recorded in an append-only run directory.
-4. A host model predicts a predeclared, held-out condition; it is compared with a network-only baseline on the same horizons.
-5. A fidelity gate rejects control when observations are stale, model residuals exceed the calibrated limit, clock uncertainty is too high, or the data leave the calibrated operating region.
-6. A finite policy is accepted only when its run identity, epoch, TTL, authentication, and local limits pass on the gateway and endpoint.
+3. Project frames, counters, timestamps, OpenThread MAC metrics, and policy epochs are recorded in an append-only run directory.
+4. A three-way model comparison is scored on identical held-out horizons: naive moving-average baseline vs. network-only model vs. cross-layer Kalman filter model.
+5. A fidelity gate rejects control when observations are stale, model residuals/covariance exceed calibrated bounds, clock uncertainty is too high, or data leave the calibrated region.
+6. A finite policy is accepted only when its run identity, strictly monotonic epoch, TTL, ChaCha20-Poly1305 authentication (RFC 8439), and local limits pass on the gateway and endpoint.
 7. The stale-observation path demonstrably returns the system to a local safe policy without relying on the host.
 
 Only after all seven links are evidenced may the repository report a closed-loop, hardware-in-the-loop digital twin. Before then, the honest labels are **physical testbed**, **offline model**, or **live digital shadow**, depending on the achieved data flow.
@@ -92,7 +92,7 @@ The system uses synthetic payloads so that scheduling and network behavior—not
 | Traffic Class | Purpose | Handling Rule |
 |---|---|---|
 | Control | Policy acknowledgements and health state | Reserve capacity; reject stale data rather than silently replacing current state |
-| Critical | Deadline-sensitive event traffic | Expire an item that cannot meet its deadline; do not let old work crowd out new critical work |
+| Critical | Deadline-sensitive event traffic | Expire an item that cannot meet its deadline via EDF admission control; do not let old work crowd out new critical work |
 | Telemetry | Periodic state observations | Coalesce an older equivalent sample only when the manifest permits it |
 | Bulk | Diagnostics or synthetic background load | Best effort; shed first under pressure and never use it to justify loss of critical service |
 
@@ -100,14 +100,15 @@ All controlled disturbances are application-level and limited to workload timing
 
 ## Budget And Prerequisites
 
-The hard purchase ceiling is **Rp1,500,000**. The complete, costed ceiling is kept in [hardware/bom.csv](hardware/bom.csv), dated 29 August 2026. Its current allocation is Rp1,250,000 for required hardware and allowance, Rp90,000 for an optional BME280 demonstrator sensor, and Rp160,000 for replacement/price reserve. The total is exactly Rp1,500,000; it is a ceiling, not a target to spend.
+The baseline purchase ceiling is **Rp 1,500,000** (with flexibility up to **Rp 1,750,000** for hardware instrumentation reserve). The complete, costed ceiling is kept in [hardware/bom.csv](hardware/bom.csv), dated 29 August 2026. Its allocation covers four ESP32 boards, powered USB hub, cables, INA219 modules, optional BME280 sensor, wiring, and an 8-channel USB logic analyzer (Saleae clone) for UART Spinel protocol decoding and hardware trace verification.
 
 | Budget Decision | Rationale |
 |---|---|
 | Four development boards | One S3 gateway plus three matching C6 boards gives a dedicated RCP and two application endpoints without claiming a large mesh |
 | Powered USB hub and data cables | Stable power and serial access are part of reproducible embedded work, not accessories to omit from the budget |
 | Two INA219 modules | Enables comparative endpoint energy measurements after calibration; it is not a laboratory-grade power instrument |
-| Optional BME280 | Provides a realistic demonstrator input but must not block the timing, network, or fidelity milestones |
+| USB logic analyzer (8ch) | Hardware verification of Spinel UART framing between RCP and S3, I2C sensor bus transactions, and GPIO task-switch timing |
+| GY-BME280 sensor | Provides a realistic demonstrator input but must not block the timing, network, or fidelity milestones |
 | Reserve | Absorbs a board failure, connector issue, or price change without forcing an undocumented architecture change |
 
 An existing laptop and an existing private 2.4 GHz Wi-Fi access point are prerequisites, not hidden costs. Before purchasing, recheck the quoted board revision, availability, and price. If matching C6 boards cannot be obtained within the ceiling, stop and revise the architecture, manifests, and claims together; do not silently substitute a different mesh technology.
@@ -116,17 +117,17 @@ An existing laptop and an existing private 2.4 GHz Wi-Fi access point are prereq
 
 | Location | Responsibility |
 |---|---|
-| [common/](common/) | Portable C contracts for protocol framing, clock sync, event traces, metrics, status codes, and the control-profile boundary |
-| [host/](host/) | Host-side coordinator, manifest conversion, recorder, broker adapter, estimator, model, fidelity gate, and policy interfaces |
-| [firmware/gateway/](firmware/gateway/) | ESP-IDF S3 gateway scaffold, including RCP/thread bridge, backhaul, provisioning, and edge guard |
-| [firmware/endpoint/](firmware/endpoint/) | ESP-IDF C6 endpoint scaffold, including workload release, deadline queue, OpenThread transport, trace, and power probe boundaries |
+| [common/](common/) | Portable C contracts: protocol framing (`cldt_protocol.h`), ChaCha20-Poly1305 auth (`cldt_auth.h`), CRC-32C (`cldt_crc32c.h`), clock sync, event traces, metrics, status codes, and control profiles |
+| [host/](host/) | Host-side coordinator, manifest conversion, recorder, broker adapter, Kalman filter estimator (`kalman.h`), twin model, fidelity gate, policy interfaces, and reproduction script (`analysis/reproduce.py`) |
+| [firmware/gateway/](firmware/gateway/) | ESP-IDF S3 gateway firmware: OpenThread MAC diagnostics (`thread_diagnostic.h`), RCP/Thread bridge, backhaul, provisioning, and edge policy guard |
+| [firmware/endpoint/](firmware/endpoint/) | ESP-IDF C6 endpoint firmware: EDF deadline queue (`deadline_queue.h`), workload generator, OpenThread transport, trace, and INA219 power probe (`power_probe.h`) |
 | [experiments/](experiments/) | Eight strict JSON planning templates that conform to the repository schema |
 | [experiments/authoring/](experiments/authoring/) | Matching JSONC authoring companions with line comments and operator-focused completion guidance |
 | [schemas/](schemas/) | JSON Schema for the template-to-ready lifecycle; this is machine-facing and remains strict JSON |
 | [tests/](tests/) | Intentionally skipped C test skeletons that define the required verification surface |
 | [hardware/bom.csv](hardware/bom.csv) | Itemized cost ceiling, assumptions, vendor links, and date checked |
 
-There are intentionally only three public Markdown documents. This README sets scope and presentation; [DESIGN.md](DESIGN.md) defines ownership, data flow, and implementation boundaries; [EXPERIMENTS.md](EXPERIMENTS.md) defines how a future claim becomes admissible evidence. Keeping them separate makes it much easier for a reviewer to distinguish intent, engineering design, and experimental proof.
+There are intentionally only three primary public Markdown documents. This README sets scope and presentation; [DESIGN.md](DESIGN.md) defines ownership, data flow, and implementation boundaries; [EXPERIMENTS.md](EXPERIMENTS.md) defines how a future claim becomes admissible evidence. Supporting documents include [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Keeping them separate makes it much easier for a reviewer to distinguish intent, engineering design, and experimental proof.
 
 ## Quick Start for Reviewers
 

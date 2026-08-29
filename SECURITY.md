@@ -2,13 +2,12 @@
 
 ## Scope
 
-This repository is a **research scaffold**, not a production system. The authentication interface (`cldt_authenticator_t`) is defined but not yet implemented. No cryptographic claim is made at the current scaffold stage.
+This repository is a **research scaffold**, not a production system. Policy command authentication is formally specified using **ChaCha20-Poly1305 AEAD** (RFC 8439) implemented via mbedTLS (`common/include/cldt/cldt_auth.h`, `common/src/cldt_auth.c`):
 
-The project plans to use a maintained platform cryptographic primitive for command authentication before any remote actuation is enabled. The implementation must:
-
-- Document the covered bytes and tag verification procedure.
-- Keep secrets out of manifests, source files, and Git history.
-- Include known-answer tests before the authenticator is trusted in a physical run.
+- **Key Isolation:** 256-bit pre-shared keys are stored exclusively in Non-Volatile Storage (NVS) on the ESP32 gateway/endpoints and in git-ignored `.env` on the host. Keys are never committed to manifests or Git history.
+- **Nonce Derivation:** Every command uses a unique 12-byte network-order nonce derived from `run_id` (64-bit) and strictly monotonic `policy_epoch` (32-bit), preventing nonce reuse and replay attacks.
+- **Verification:** The 16-byte Poly1305 tag covers frame header bytes 0–51 as Associated Authenticated Data (AAD) and the 80-byte policy payload.
+- **Known-Answer Verification:** RFC 8439 §2.8.2 standard test vectors are integrated for testing before hardware actuation.
 
 ## Reporting a Vulnerability
 

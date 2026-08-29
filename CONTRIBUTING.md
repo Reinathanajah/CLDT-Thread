@@ -7,10 +7,10 @@ This repository is a research scaffold for a hardware-in-the-loop digital twin s
 - Git
 - CMake 3.20 or newer
 - A C11 compiler (GCC, Clang, or MSVC)
-- Python 3.12 or newer (for manifest validation)
-- ESP-IDF (for firmware targets only; not required for host builds)
+- Python 3.12 or newer (for manifest validation and `host/analysis/reproduce.py`)
+- ESP-IDF v5.2 or newer (for firmware targets; requires `CONFIG_MBEDTLS_CHACHAPOLY_C=y`)
 
-## Host Build
+## Host Build And Reproduction
 
 ```bash
 cmake -S . -B build -DCLDT_BUILD_TESTS=ON
@@ -19,6 +19,12 @@ ctest --test-dir build --output-on-failure
 ```
 
 At the scaffold stage, all four test executables return skip code 77. A green build proves interface consistency, not a working digital twin.
+
+To run the analysis and evidence reproduction pipeline against a run directory:
+
+```bash
+python host/analysis/reproduce.py results/sample_run/
+```
 
 ## Manifest Validation
 
