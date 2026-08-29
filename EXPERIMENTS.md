@@ -20,7 +20,9 @@ The principal investigation evaluates whether incorporating internal node and MA
 
 The statistical comparison evaluates the relative reduction in held-out P95 prediction error:
 
-$$\Delta = \frac{\text{Error}(M_{\text{network}}) - \text{Error}(M_{\text{cross}})}{\text{Error}(M_{\text{network}})}$$
+$$
+\Delta = \frac{\text{Error}(M_{\text{network}}) - \text{Error}(M_{\text{cross}})}{\text{Error}(M_{\text{network}})}
+$$
 
 - **Null Hypothesis ($H_0$):** Cross-layer features do not improve held-out prediction accuracy beyond the predeclared engineering relevance threshold of 15% ($H_0: \Delta \le 0.15$).
 - **Alternative Hypothesis ($H_1$):** Cross-layer features achieve a meaningful reduction in held-out relative P95 error exceeding the threshold ($H_1: \Delta > 0.15$).

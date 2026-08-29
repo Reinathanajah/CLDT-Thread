@@ -207,15 +207,23 @@ The host will eventually resolve a named profile from a versioned local registry
 The fidelity gate is not a classifier that tries to say “yes” often. It is a fail-closed state machine with four states defined by `cldt_gate_state_t`: `COLD`, `OBSERVE`, `TRUSTED`, and `ABSTAIN`. It begins cold; it requires enough valid evidence and consecutive passing windows before becoming trusted; a hard failure exits trusted state immediately; recovery requires asymmetric hysteresis rather than one convenient sample.
 
 The host estimator uses a **5-state discrete-time linear Kalman filter** (`kalman.h`):
-- **Discrete-time state equations:**
-  $$\begin{aligned}
-  x_{k+1} &= F x_k + w_k, \quad w_k \sim \mathcal{N}(0, Q) \\
-  z_k &= H x_k + v_k, \quad v_k \sim \mathcal{N}(0, R)
-  \end{aligned}$$
-- **State vector ($n=5$):** `x = [queue_depth_A, queue_depth_B, critical_pdr, link_quality, mac_retry_rate]^T`
-- **Estimation uncertainty:** The diagonal covariance element `P[2][2]` reflects the estimated variance of the critical delivery ratio under the linear process/measurement model and calibrated noise matrices ($Q, R$).
-- **Gate Integration:** The fidelity gate evaluates model residuals, observation age, clock uncertainty, interval coverage, and whether `P[2][2]` remains within calibrated thresholds. If any check fails, the gate immediately transitions to `ABSTAIN`.
-- *Scaffold Maturity:* At the scaffold stage, matrix dimensions and update interfaces are defined, but numerical matrices ($F, H, Q, R$), initial covariance $P_0$, and gating thresholds are uncalibrated; they are treated as calibration artifacts determined during baseline pilot runs.
+
+$$
+\begin{aligned}
+x_{k+1} &= F x_k + w_k, \quad w_k \sim \mathcal{N}(0, Q) \\
+z_k &= H x_k + v_k, \quad v_k \sim \mathcal{N}(0, R)
+\end{aligned}
+$$
+
+The state vector $x \in \mathbb{R}^5$ is defined as:
+
+$$
+x = \begin{bmatrix} q_A \\ q_B \\ \text{PDR}_{\text{crit}} \\ \text{LQ} \\ r_{\text{MAC}} \end{bmatrix} = \begin{bmatrix} \text{Endpoint A queue occupancy} \\ \text{Endpoint B queue occupancy} \\ \text{Critical traffic packet delivery ratio} \\ \text{Parent link quality indicator} \\ \text{OpenThread MAC retry rate} \end{bmatrix}
+$$
+
+- **Estimation Uncertainty:** The diagonal covariance element $P[2][2]$ reflects the estimated variance of the critical delivery ratio ($\text{PDR}_{\text{crit}}$) under the linear process/measurement model and calibrated noise matrices ($Q, R$).
+- **Gate Integration:** The fidelity gate evaluates model residuals, observation age, clock uncertainty, interval coverage, and whether $P[2][2]$ remains within calibrated thresholds. If any check fails, the gate immediately transitions to `ABSTAIN`.
+- **Scaffold Maturity:** At the scaffold stage, matrix dimensions and update interfaces are defined, but numerical matrices ($F, H, Q, R$), initial covariance $P_0$, and gating thresholds are uncalibrated; they are treated as calibration artifacts determined during baseline pilot runs.
 
 The gate output is strictly boolean: whether actuation may be considered. It never serializes or applies a policy. The gateway’s `cldt_policy_guard_accept()` independently validates active run, strict epoch ordering, local health, TTL, clock uncertainty, total rate, critical-period protection, and bulk burst ceiling. If the host goes away, the guard falls back to its compiled safe policy and records why.
 
