@@ -114,7 +114,7 @@ The endpoint implements an **Earliest Deadline First (EDF)** queue (`deadline_qu
 - **Periodic Expiry:** A dedicated 10 ms hardware-backed `esp_timer` executes an expiry sweep that purges work whose deadline has passed (`deadline_local_us <= now_local_us`) and compacts the ordering array before late work enters the radio buffer.
 - **Capacity Reservation:** Slots are reserved for `CLDT_TRAFFIC_CONTROL` and `CLDT_TRAFFIC_CRITICAL` streams. For telemetry, older same-source items are coalesced.
 
-The transmitter task pops the earliest-deadline slot from the EDF queue and passes it to the Thread transport adapter. The trace task drains local records into a bounded export path. When energy measurement is enabled, the INA219 power task (`power_probe.h`) samples voltage and current at 12-bit resolution (532 µs conversion) over I2C (`GPIO6`/`GPIO7`), integrating energy $\sum (V \cdot I \cdot \Delta t)$ to report energy per successfully delivered critical item ($\mu\text{J}/\text{item}$).
+The transmitter task pops the earliest-deadline slot from the EDF queue and passes it to the Thread transport adapter. The trace task drains local records into a bounded export path. When energy measurement is enabled, the INA219 power task (`power_probe.h`) samples voltage and current at 12-bit resolution (532 µs conversion) over I2C (`GPIO6`/`GPIO7`), integrating energy $\sum (V \cdot I \cdot \Delta t)$ to report energy per successfully delivered critical item (µJ/item).
 
 ### Synchronization Rules
 
@@ -160,7 +160,7 @@ Version 1 uses a fixed 72-byte header. The offsets below are normative and are a
 | 40–47 | Local deadline |
 | 48–49 | Payload byte count |
 | 50–51 | Reserved; must be zero |
-| 52–55 | CRC-32C (Castagnoli polynomial $0\text{x}1\text{EDC}6\text{F}41$) |
+| 52–55 | CRC-32C (Castagnoli polynomial `0x1EDC6F41`) |
 | 56–71 | Authentication tag (16-byte Poly1305 tag) |
 
 A version 1 policy command uses an 80-byte payload in this exact order: four 32-bit release periods, four 32-bit phase offsets, four 16-bit burst limits, four 16-bit batch sizes, four 32-bit token rates, a 32-bit epoch, a 64-bit gateway issue time, and a 32-bit TTL. The payload epoch must equal the header epoch. This layout is defined independently of `sizeof(cldt_policy_t)` so compiler padding cannot alter the wire format.
@@ -207,12 +207,14 @@ The host will eventually resolve a named profile from a versioned local registry
 The fidelity gate is not a classifier that tries to say “yes” often. It is a fail-closed state machine with four states defined by `cldt_gate_state_t`: `COLD`, `OBSERVE`, `TRUSTED`, and `ABSTAIN`. It begins cold; it requires enough valid evidence and consecutive passing windows before becoming trusted; a hard failure exits trusted state immediately; recovery requires asymmetric hysteresis rather than one convenient sample.
 
 The host estimator uses a **5-state discrete-time linear Kalman filter** (`kalman.h`):
-- **State space model:**
-  $$x_{k+1} = F x_k + w_k, \quad w_k \sim \mathcal{N}(0, Q)$$
-  $$z_k = H x_k + v_k, \quad v_k \sim \mathcal{N}(0, R)$$
-- **State vector ($n=5$):** $x = [\text{queue\_depth\_A}, \text{queue\_depth\_B}, \text{critical\_pdr}, \text{link\_quality}, \text{mac\_retry\_rate}]^T$.
-- **Estimation uncertainty:** The diagonal covariance element $P[2][2]$ reflects the estimated variance of the critical delivery ratio under the linear process/measurement model and calibrated noise matrices ($Q, R$).
-- **Gate Integration:** The fidelity gate evaluates model residuals, observation age, clock uncertainty, interval coverage, and whether $P[2][2]$ remains within calibrated thresholds. If any check fails, the gate immediately transitions to `ABSTAIN`.
+- **Discrete-time state equations:**
+  $$\begin{aligned}
+  x_{k+1} &= F x_k + w_k, \quad w_k \sim \mathcal{N}(0, Q) \\
+  z_k &= H x_k + v_k, \quad v_k \sim \mathcal{N}(0, R)
+  \end{aligned}$$
+- **State vector ($n=5$):** `x = [queue_depth_A, queue_depth_B, critical_pdr, link_quality, mac_retry_rate]^T`
+- **Estimation uncertainty:** The diagonal covariance element `P[2][2]` reflects the estimated variance of the critical delivery ratio under the linear process/measurement model and calibrated noise matrices ($Q, R$).
+- **Gate Integration:** The fidelity gate evaluates model residuals, observation age, clock uncertainty, interval coverage, and whether `P[2][2]` remains within calibrated thresholds. If any check fails, the gate immediately transitions to `ABSTAIN`.
 - *Scaffold Maturity:* At the scaffold stage, matrix dimensions and update interfaces are defined, but numerical matrices ($F, H, Q, R$), initial covariance $P_0$, and gating thresholds are uncalibrated; they are treated as calibration artifacts determined during baseline pilot runs.
 
 The gate output is strictly boolean: whether actuation may be considered. It never serializes or applies a policy. The gateway’s `cldt_policy_guard_accept()` independently validates active run, strict epoch ordering, local health, TTL, clock uncertainty, total rate, critical-period protection, and bulk burst ceiling. If the host goes away, the guard falls back to its compiled safe policy and records why.
