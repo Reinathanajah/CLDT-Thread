@@ -110,7 +110,7 @@ The endpoint lifecycle is also explicit: boot, commissioning, attached, idle, ru
 
 The endpoint implements an **Earliest Deadline First (EDF)** queue (`deadline_queue.h`):
 - **Data structure:** Bounded fixed-pool array (no heap allocation) with an index array sorted by absolute `deadline_local_us`.
-- **Insertion & Admission:** Binary search finds the exact position in the deadline order. If the pool is full, admission control compares the incoming deadline against the latest deadline in the queue; the item expiring latest is rejected or evicted, ensuring maximum deadline feasibility (Liu & Layland, 1973).
+- **Insertion & Admission:** Binary search determines the insertion index in deadline order. If the pool is full, admission control compares the incoming item against the queued item having the latest deadline; the later-deadline item is rejected or evicted, preserving bounded capacity for earlier-deadline work.
 - **Periodic Expiry:** A dedicated 10 ms hardware-backed `esp_timer` executes an expiry sweep that purges work whose deadline has passed (`deadline_local_us <= now_local_us`) and compacts the ordering array before late work enters the radio buffer.
 - **Capacity Reservation:** Slots are reserved for `CLDT_TRAFFIC_CONTROL` and `CLDT_TRAFFIC_CRITICAL` streams. For telemetry, older same-source items are coalesced.
 
@@ -173,7 +173,7 @@ A version 1 policy command uses an 80-byte payload in this exact order: four 32-
 | Sequence and policy epoch | Make duplicate and out-of-order inputs observable | Policy epoch must increase strictly; reject replay |
 | Local transmit time and deadline | Support queue/deadline accounting | Deadline must be internally valid and interpreted with clock uncertainty |
 | CRC-32C | Detect accidental byte corruption | Verify over frame bytes 0–51 with integrity fields zeroed before publishing |
-| Authentication tag | Authenticate command origin and verify payload integrity | ChaCha20-Poly1305 (RFC 8439) over AAD (header bytes 0–51 \|\| policy payload); 12-byte nonce (`run_id` + `policy_epoch`), 256-bit PSK in NVS. Nonce tuple must never repeat under the same key. |
+| Authentication tag | Authenticate command origin and verify payload integrity | ChaCha20-Poly1305 (RFC 8439) over AAD (header bytes 0–51 \|\| policy payload); 12-byte nonce (`run_id` + `policy_epoch`), 256-bit PSK provisioned in persistent storage. Nonce tuple must never repeat under the same key. |
 | TTL | Ensures an old optimization cannot persist indefinitely | Reject zero, expired, and implausibly long TTL values |
 
 ## Control Profile Contract
