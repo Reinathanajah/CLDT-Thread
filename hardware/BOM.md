@@ -107,10 +107,21 @@ The ESP32-S3 communicates with the C6 Radio Co-Processor over a dedicated high-s
 ### 5.2 Endpoint: ESP32-C6 to INA219 Current Sensor (High-Side Sensing)
 Each endpoint node routes its power rail through an INA219 current shunt sensor before entering the 3.3V power domain.
 
-```
-VBUS (5V USB) ───> [ INA219 VIN+ ] ───[ 0.1 Ω Shunt ]───> [ INA219 VIN- ] ───> ESP32-C6 5V / 3V3 In
-                                                                                │
-GND (Common)  ──────────────────────────────────────────────────────────────────┴──> ESP32-C6 GND
+```mermaid
+flowchart LR
+    VBUS["VBUS (+5V USB Supply)"]
+    VIN_P["INA219 (VIN+)"]
+    SHUNT["0.1 Ω Precision Current Shunt"]
+    VIN_N["INA219 (VIN-)"]
+    MCU_VCC["ESP32-C6 (5V / 3V3 Power In)"]
+    GND["Common Ground (GND)"]
+    MCU_GND["ESP32-C6 (GND)"]
+
+    VBUS -->|"High-Side Inflow"| VIN_P
+    VIN_P --> SHUNT
+    SHUNT --> VIN_N
+    VIN_N -->|"Measured Power Rail"| MCU_VCC
+    GND --- MCU_GND
 ```
 
 | INA219 Pin | ESP32-C6 Pin | Net / Function |
