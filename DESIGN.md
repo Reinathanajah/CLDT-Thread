@@ -160,7 +160,7 @@ Version 1 uses a fixed 72-byte header. The offsets below are normative and are a
 | 40–47 | Local deadline |
 | 48–49 | Payload byte count |
 | 50–51 | Reserved; must be zero |
-| 52–55 | CRC-32C (Castagnoli $0\text{x}1\text{EDC}6\text{F}41$, ROM-accelerated on ESP32) |
+| 52–55 | CRC-32C (Castagnoli polynomial $0\text{x}1\text{EDC}6\text{F}41$) |
 | 56–71 | Authentication tag (16-byte Poly1305 tag) |
 
 A version 1 policy command uses an 80-byte payload in this exact order: four 32-bit release periods, four 32-bit phase offsets, four 16-bit burst limits, four 16-bit batch sizes, four 32-bit token rates, a 32-bit epoch, a 64-bit gateway issue time, and a 32-bit TTL. The payload epoch must equal the header epoch. This layout is defined independently of `sizeof(cldt_policy_t)` so compiler padding cannot alter the wire format.
@@ -170,10 +170,10 @@ A version 1 policy command uses an 80-byte payload in this exact order: four 32-
 | Protocol magic and version | Prevent accidental decoding of unrelated or incompatible bytes | Reject unknown magic/version before exposing a frame |
 | Frame kind and traffic class | Keep observations, commands, acknowledgements, clock sync, and health semantically distinct | A policy path accepts only a command frame |
 | Run ID and boot ID | Bind work to one run and distinguish a post-restart endpoint | Reject a command for another active run |
-| Sequence and policy epoch | Make duplicate and out-of-order inputs observable | Policy epoch must increase strictly |
+| Sequence and policy epoch | Make duplicate and out-of-order inputs observable | Policy epoch must increase strictly; reject replay |
 | Local transmit time and deadline | Support queue/deadline accounting | Deadline must be internally valid and interpreted with clock uncertainty |
-| CRC-32C | Detect accidental corruption | Verify bytes 0–51 before publishing decoded data |
-| Authentication tag | Distinguish an authorized command from forged/corrupted bytes | ChaCha20-Poly1305 (RFC 8439) with 12-byte nonce (`run_id` + `epoch`) and 256-bit PSK stored in NVS |
+| CRC-32C | Detect accidental byte corruption | Verify over frame bytes 0–51 with integrity fields zeroed before publishing |
+| Authentication tag | Authenticate command origin and verify payload integrity | ChaCha20-Poly1305 AEAD (RFC 8439): 12-byte nonce (`run_id` + `policy_epoch`), 256-bit PSK in NVS, covers header bytes 0–51 as AAD |
 | TTL | Ensures an old optimization cannot persist indefinitely | Reject zero, expired, and implausibly long TTL values |
 
 ## Control Profile Contract
@@ -193,7 +193,7 @@ sequenceDiagram
     Author->>Host: Ready manifest plus named control profile
     Host->>Host: Resolve immutable profile and record digest
     Host->>Gate: Initialize with calibrated fidelity limits
-    Host->>Guard: Send signed finite proposal with run ID and epoch
+    Host->>Guard: Send authenticated finite proposal with run ID and epoch
     Guard->>Guard: Check profile-derived local ceilings and TTL
     Guard->>Endpoint: Forward only accepted bounded command
     Endpoint->>Endpoint: Recheck run, epoch, authentication, TTL, limits
@@ -206,10 +206,14 @@ The host will eventually resolve a named profile from a versioned local registry
 
 The fidelity gate is not a classifier that tries to say “yes” often. It is a fail-closed state machine with four states defined by `cldt_gate_state_t`: `COLD`, `OBSERVE`, `TRUSTED`, and `ABSTAIN`. It begins cold; it requires enough valid evidence and consecutive passing windows before becoming trusted; a hard failure exits trusted state immediately; recovery requires asymmetric hysteresis rather than one convenient sample.
 
-The host estimator utilizes a **5-state discrete-time linear Kalman filter** (`kalman.h`):
+The host estimator uses a **5-state discrete-time linear Kalman filter** (`kalman.h`):
+- **State space model:**
+  $$x_{k+1} = F x_k + w_k, \quad w_k \sim \mathcal{N}(0, Q)$$
+  $$z_k = H x_k + v_k, \quad v_k \sim \mathcal{N}(0, R)$$
 - **State vector ($n=5$):** $x = [\text{queue\_depth\_A}, \text{queue\_depth\_B}, \text{critical\_pdr}, \text{link\_quality}, \text{mac\_retry\_rate}]^T$.
-- **Covariance matrix ($P$):** Provides principled Bayesian uncertainty. The diagonal element $P[2][2]$ quantifies variance on the critical delivery ratio.
-- **Gate Integration:** If $P[2][2]$ exceeds the calibrated limit, or observation age, model lag, clock uncertainty, residual error, prediction-interval coverage, or calibrated-region bounds fail, the gate immediately transitions to `ABSTAIN`.
+- **Estimation uncertainty:** The diagonal covariance element $P[2][2]$ reflects the estimated variance of the critical delivery ratio under the linear process/measurement model and calibrated noise matrices ($Q, R$).
+- **Gate Integration:** The fidelity gate evaluates model residuals, observation age, clock uncertainty, interval coverage, and whether $P[2][2]$ remains within calibrated thresholds. If any check fails, the gate immediately transitions to `ABSTAIN`.
+- *Scaffold Maturity:* At the scaffold stage, matrix dimensions and update interfaces are defined, but numerical matrices ($F, H, Q, R$), initial covariance $P_0$, and gating thresholds are uncalibrated; they are treated as calibration artifacts determined during baseline pilot runs.
 
 The gate output is strictly boolean: whether actuation may be considered. It never serializes or applies a policy. The gateway’s `cldt_policy_guard_accept()` independently validates active run, strict epoch ordering, local health, TTL, clock uncertainty, total rate, critical-period protection, and bulk burst ceiling. If the host goes away, the guard falls back to its compiled safe policy and records why.
 

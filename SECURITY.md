@@ -5,7 +5,7 @@
 This repository is a **research scaffold**, not a production system. Policy command authentication is formally specified using **ChaCha20-Poly1305 AEAD** (RFC 8439) implemented via mbedTLS (`common/include/cldt/cldt_auth.h`, `common/src/cldt_auth.c`):
 
 - **Key Isolation:** 256-bit pre-shared keys are stored exclusively in Non-Volatile Storage (NVS) on the ESP32 gateway/endpoints and in git-ignored `.env` on the host. Keys are never committed to manifests or Git history.
-- **Nonce Derivation:** Every command uses a unique 12-byte network-order nonce derived from `run_id` (64-bit) and strictly monotonic `policy_epoch` (32-bit), preventing nonce reuse and replay attacks.
+- **Nonce Construction:** Every command uses a unique 12-byte network-order nonce derived from big-endian `run_id` (64-bit) and `policy_epoch` (32-bit), guaranteeing strict per-command nonce uniqueness under the active key. Replay and validity protection is enforced by the full stateful validation contract: matching `run_id`, active `boot_id`, strictly monotonic epoch ($> \text{applied\_epoch}$), non-expired TTL, and local gateway/endpoint limits.
 - **Verification:** The 16-byte Poly1305 tag covers frame header bytes 0–51 as Associated Authenticated Data (AAD) and the 80-byte policy payload.
 - **Known-Answer Verification:** RFC 8439 §2.8.2 standard test vectors are integrated for testing before hardware actuation.
 

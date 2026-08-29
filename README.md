@@ -10,7 +10,7 @@ The repository is intentionally not a finished product. It contains contracts, b
 
 ## What Is In The Repository Today
 
-The current tree is an implementation-ready research scaffold, not a simulated demonstration disguised as a system. The distinction matters when presenting it on GitHub or in an internship application.
+The current repository is an implementation-ready research scaffold. It defines executable contracts, schemas, and build structures rather than claiming completed physical digital-twin operation.
 
 | Area | Present Now | Not Yet Claimed |
 |---|---|---|
@@ -29,7 +29,7 @@ Network digital twins are valuable only when the relationship between the physic
 
 The direction is closely related to current research at NTUST BMW Lab, but it does not imitate capabilities it cannot truthfully reproduce. BMW Lab describes a 2025–2028 Hybrid Wireless Access Network Digital Twin Platform that combines physical Cellular/Wi-Fi/NTN systems, virtual components, data collection, modeling, synchronization, and control. Its public work also spans communication-protocol performance analysis and IoT applications. The official 2026 TEEP listing for the NTUST program names Digital Twin Technologies, data collection, and real-time simulation among its topics. That listing is evidence of thematic alignment, not a promise that a later call will retain the same dates or requirements. The transferable evidence sought here is therefore practical and relevant: disciplined C engineering, network instrumentation, reproducible experiments, model validation, and safe control boundaries. [BMW Lab Research](https://sites.google.com/view/bmw-lab/from-prof-ray-website/research) [BMW Lab Projects](https://sites.google.com/view/bmw-lab/projects) [2026 TEEP Program Listing](https://teep.studyintaiwan.org/program/2109)
 
-This is **not** an O-RAN, 5G, 6G, Wi-Fi 7, Matter-certification, or radio/PHY-in-the-loop project. The physical system is an 802.15.4 Thread testbed. Its value is the quality of the experimental method and the explicit safety/reproducibility discipline, not an inflated technology label.
+The physical testbed operates on an IEEE 802.15.4 Thread mesh. The project investigates bounded cross-layer modeling and safe control boundaries on low-power IoT networks, rather than higher-frequency cellular, Wi-Fi, or PHY-level channel emulation.
 
 ## Intended System
 
@@ -78,9 +78,9 @@ The target is not a polished dashboard. A fully working result must show a defen
 1. An endpoint can account for each generated item through a terminal outcome before networking is introduced via local EDF queue scheduling.
 2. The Thread topology is attached and its actual roles, parent relationships, firmware identities, and placement are recorded.
 3. Project frames, counters, timestamps, OpenThread MAC metrics, and policy epochs are recorded in an append-only run directory.
-4. A three-way model comparison is scored on identical held-out horizons: naive moving-average baseline vs. network-only model vs. cross-layer Kalman filter model.
+4. A three-way model benchmark is scored on identical held-out horizons: naive moving-average baseline, network-only model ($M_{\text{network}} = f_\theta(X_{\text{network}})$), and cross-layer model ($M_{\text{cross}} = f_\theta(X_{\text{network}}, X_{\text{cross}})$) sharing the same underlying model family.
 5. A fidelity gate rejects control when observations are stale, model residuals/covariance exceed calibrated bounds, clock uncertainty is too high, or data leave the calibrated region.
-6. A finite policy is accepted only when its run identity, strictly monotonic epoch, TTL, ChaCha20-Poly1305 authentication (RFC 8439), and local limits pass on the gateway and endpoint.
+6. A finite policy command is accepted only when its run identity, strictly monotonic epoch, non-expired TTL, ChaCha20-Poly1305 AEAD authentication (RFC 8439), and local limits pass on the gateway and endpoint.
 7. The stale-observation path demonstrably returns the system to a local safe policy without relying on the host.
 
 Only after all seven links are evidenced may the repository report a closed-loop, hardware-in-the-loop digital twin. Before then, the honest labels are **physical testbed**, **offline model**, or **live digital shadow**, depending on the achieved data flow.
@@ -100,7 +100,7 @@ All controlled disturbances are application-level and limited to workload timing
 
 ## Budget And Prerequisites
 
-The baseline purchase ceiling is **Rp 1,500,000** (with flexibility up to **Rp 1,750,000** for hardware instrumentation reserve). The complete, costed ceiling is kept in [hardware/BOM.md](hardware/BOM.md), dated 29 August 2026. Its allocation covers four ESP32 boards, powered USB hub, cables, INA219 modules, optional BME280 sensor, wiring, and an 8-channel USB logic analyzer (Saleae clone) for UART Spinel protocol decoding and hardware trace verification.
+The baseline purchase ceiling is **Rp 1,550,000** (with an extended contingency reserve up to **Rp 1,750,000**). The complete, costed ceiling is kept in [hardware/BOM.md](hardware/BOM.md), dated 29 August 2026. Its allocation covers four ESP32 boards, powered USB hub, cables, INA219 modules, optional BME280 sensor, wiring, and an 8-channel USB logic analyzer (Saleae clone) for UART Spinel protocol decoding and hardware trace verification.
 
 | Budget Decision | Rationale |
 |---|---|

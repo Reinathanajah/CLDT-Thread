@@ -12,21 +12,29 @@ This distinction follows current network-digital-twin architectural research: tw
 
 ### Primary Question: Does Cross-Layer State Improve Held-Out Prediction?
 
-The central comparison is a **three-way statistical benchmark** scored on the exact same physical system and held-out horizons:
-1. **Naive Moving-Average Baseline:** A featureless historical moving-average predictor that defines the statistical floor.
-2. **Network-Only Model:** Uses network-visible information such as delivery outcome, link RSSI, and traffic load.
-3. **Cross-Layer Kalman Filter Model:** Receives network-visible metrics plus OpenThread MAC layer telemetry (`mTxRetry` retransmissions, `mTxErrCca` channel busy errors, `mTxDirectMaxRetryExpiry`), endpoint EDF queue depth and preemptive expiry count, parent link quality (`mLinkQualityIn`/`mLinkQualityOut`), and FreeRTOS task/core affinity traces.
+The principal investigation evaluates whether incorporating internal node and MAC-layer telemetry improves prediction accuracy over network-only observables. To prevent confounding model architecture with feature availability, both candidate models share the exact same model family ($f_\theta$), loss formulation, calibration block, and held-out evaluation horizons:
 
-The comparison tests a **predeclared null hypothesis**:
-> *The cross-layer Kalman filter model reduces relative P95 prediction error on the held-out load step by at least 15% relative to the network-only model and naive baseline. If it does not, that constitutes an admissible negative finding—not an experimental failure.*
+1. **Naive Baseline ($M_{\text{naive}}$):** A historical moving-average predictor that establishes the non-parametric statistical floor.
+2. **Network-Only Model ($M_{\text{network}}$):** $M_{\text{network}} = f_\theta(X_{\text{network}})$, utilizing network-visible features including packet delivery outcome, link RSSI, and offered traffic load.
+3. **Cross-Layer Model ($M_{\text{cross}}$):** $M_{\text{cross}} = f_\theta(X_{\text{network}}, X_{\text{cross}})$, utilizing network features plus internal device telemetry: OpenThread MAC counters (`mTxRetry`, `mTxErrCca`, `mTxDirectMaxRetryExpiry`), endpoint EDF queue occupancy and preemptive expiry counts, parent link quality (`mLinkQualityIn`/`mLinkQualityOut`), and FreeRTOS execution traces.
 
-The primary outcome is held-out error of predicted critical on-time delivery ratio with 95% bootstrap confidence intervals (1,000 resamples). A result is equally valuable if cross-layer features do not improve prediction under a given regime, provided training/held-out separation, raw traces, and item accounting are complete.
+The statistical comparison evaluates the relative reduction in held-out P95 prediction error:
+
+$$\Delta = \frac{\text{Error}(M_{\text{network}}) - \text{Error}(M_{\text{cross}})}{\text{Error}(M_{\text{network}})}$$
+
+- **Null Hypothesis ($H_0$):** Cross-layer features do not improve held-out prediction accuracy beyond the predeclared engineering relevance threshold of 15% ($H_0: \Delta \le 0.15$).
+- **Alternative Hypothesis ($H_1$):** Cross-layer features achieve a meaningful reduction in held-out relative P95 error exceeding the threshold ($H_1: \Delta > 0.15$).
+
+Failing to reject $H_0$ constitutes an admissible negative finding, demonstrating that cross-layer telemetry does not justify additional instrumentation overhead under the tested regime.
+
+**Experimental Units and Uncertainty Estimation:**
+Independent physical **runs** (with randomized treatment order and distinct boot cycles) serve as the primary experimental unit for between-condition comparisons. For time-series uncertainty estimation within a continuous run, consecutive observation windows exhibit temporal autocorrelation; standard IID resampling is invalid. Scored horizons are resampled using a **block bootstrap** (1,000 resamples), with block length determined by the empirical autocorrelation decay of prediction residuals, to construct 95% confidence intervals on P95 error and interval coverage.
 
 ### Primary Question: Does Fidelity-Gated Control Fail Safely?
 
 The second primary question asks whether a valid, finite policy is withdrawn when the evidence supporting it becomes stale or invalid. The initial actuator surface is deliberately narrow: reduce bulk traffic rate or burst behavior while preserving a protected critical stream. The stale-observation scenario pauses only the gateway-to-host observation publication path; endpoint traffic and Thread routing continue. The expected result is a recorded gate abstention and edge-local fallback, not a service outage.
 
-The safety outcome is not a favorable performance number. It is **zero invalid policy applications** in the specified negative cases: stale observation, expired command, wrong run ID, duplicate or older epoch, unauthenticated/corrupted payload, endpoint restart, and local-limit violation. Beyond a binary pass/fail, the gate's behavior curve is characterized over time (observation age vs. gate state, hysteresis recovery windows, and Kalman covariance $P[2][2]$ bounds).
+The safety outcome is not a favorable performance number. **Zero invalid policy applications** is the acceptance criterion for the tested negative cases: stale observation, expired command, wrong run ID, duplicate or older epoch, unauthenticated/corrupted payload, endpoint restart, and local-limit violation. Beyond a binary pass/fail, the gate's behavior curve is characterized over time (observation age vs. gate state, hysteresis recovery windows, and Kalman covariance $P[2][2]$ bounds).
 
 ### Extension: What Does ESP32-S3 SMP Change?
 
@@ -167,7 +175,7 @@ Use an application-level publication gate at the gateway or host adapter to paus
 
 ### Restart And Replay
 
-First prove one normal command acceptance with valid ChaCha20-Poly1305 authentication (RFC 8439) using the active pre-shared key. Then restart only the selected endpoint and record a new boot identity. Send old-epoch, expired, wrong-run, corrupted-tag, and replayed commands through the normal gateway path; never bypass authentication or call private apply functions. Every attempt should have a logged status code and reason (`CLDT_ERR_AUTHENTICATION`, `CLDT_ERR_EXPIRED`, `CLDT_ERR_OUT_OF_ORDER`, `CLDT_ERR_WRONG_RUN`). The primary result is zero invalid policy applications, demonstrating cryptographic and stateful rejection.
+First prove one normal command acceptance with valid ChaCha20-Poly1305 authentication (RFC 8439) using the active pre-shared key. Then restart only the selected endpoint and record a new boot identity. Send old-epoch, expired, wrong-run, corrupted-tag, and replayed commands through the normal gateway path; never bypass authentication or call private apply functions. Every attempt must have a logged status code and reason (`CLDT_ERR_AUTHENTICATION`, `CLDT_ERR_EXPIRED`, `CLDT_ERR_OUT_OF_ORDER`, `CLDT_ERR_WRONG_RUN`). Zero invalid policy applications is the acceptance criterion for the tested replay, authentication, epoch freshness, and state-validation cases.
 
 ### Topology Shift
 
