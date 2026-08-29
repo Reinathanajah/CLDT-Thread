@@ -1,0 +1,90 @@
+{
+  // Authoring copy only. Keep the matching ../baseline.json as strict JSON.
+  // Do not set state to ready until every null below has a measured or frozen value.
+  "schema_version": "2.0",
+  "state": "template",
+  "experiment_id": "stable-baseline",
+  "title": "Stable Thread Baseline",
+  "purpose": {
+    // Preserve the question. If the question changes, create a new experiment ID.
+    "question": "What does normal deadline delivery look like on the physical Thread topology before modelling or policy changes?",
+    "comparison": "Repeated static runs with the same workload, no host model, and no remote actuation.",
+    "primary_metric": "Reconciled on-time delivery ratio for the critical stream."
+  },
+  "setup": {
+    // Replace with exactly the four physical roles and their labels after repeated attachment works.
+    "nodes": null,
+    // Choose one surveyed IEEE 802.15.4 channel; do not select it from a favorable result.
+    "thread_channel": null,
+    // Describe positions, orientation, power path, cables, and the named baseline evidence block.
+    "placement": null,
+    // Record source revision, ESP-IDF/upstream revision, sdkconfig hash, and binary hashes.
+    "firmware_reference": null
+  },
+  "execution": {
+    // Warm-up is excluded from the primary calculation but must be recorded.
+    "warmup_s": null,
+    // Choose a long enough measured window to capture normal variance and many critical releases.
+    "measurement_s": null,
+    // Cooldown ends only after final counter and trace collection is requested.
+    "cooldown_s": null,
+    // Freeze the planned count before examining final baseline results.
+    "repetitions": null,
+    // Record the deterministic workload seed or an explicitly documented seed plan.
+    "seed": null
+  },
+  "traffic": {
+    // Add concrete critical and telemetry streams after pilots. Baseline has no host policy.
+    "streams": null
+  },
+  "scenario": {
+    // Stable baseline uses event none and a non-empty target such as "no injected disturbance".
+    "event": null,
+    "at_s": null,
+    "duration_s": null,
+    "target": null
+  },
+  "treatment": {
+    // Use baseline mode, candidate_action none, host_model false, remote_actuation false.
+    "mode": null,
+    "candidate_action": null,
+    // Name the immutable baseline profile even when it cannot actuate; archive its resolved digest.
+    "control_profile": null,
+    "host_model": null,
+    "remote_actuation": null
+  },
+  "acceptance": {
+    // Must be true for every reportable result.
+    "counter_reconciliation": null,
+    // Select this floor before final analysis, based on traceable pilot evidence.
+    "minimum_critical_on_time_pdr": null,
+    // State the failure that invalidates this baseline, for example unreconciled counters.
+    "negative_case": null
+  },
+  "evidence": {
+    // Require manifest, versions, topology, raw events, final counters, and operator notes at minimum.
+    "required_artifacts": null,
+    "operator_notes_required": null,
+    "topology_photo_required": null
+  },
+  "_todo": [
+    {
+      "path": "/setup",
+      "action": "Freeze the real four-board topology only after upstream RCP and border-router attachment are repeatable.",
+      "method": "Label every board, survey one channel and one work area, record placement and power path, then archive actual Thread roles and binary identities.",
+      "done_when": "The configuration survives power cycling and its placement, roles, and reachability are archived."
+    },
+    {
+      "path": "/execution",
+      "action": "Choose stable workload and duration from pilots.",
+      "method": "Run at least three pilots, changing one offered-load factor at a time until counters reconcile and queue behavior is bounded.",
+      "done_when": "Durations, streams, seed, and repetitions are frozen before reportable baseline runs."
+    },
+    {
+      "path": "/acceptance",
+      "action": "Predeclare service floor and invalidation rules.",
+      "method": "Require reconciliation, static treatment, and sufficient raw evidence to classify each run.",
+      "done_when": "A later model result is not needed to decide whether baseline data are valid."
+    }
+  ]
+}

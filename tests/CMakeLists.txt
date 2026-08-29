@@ -1,0 +1,11 @@
+function(cldt_add_skeletal_test name source)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} PRIVATE cldt_common)
+    add_test(NAME ${name} COMMAND ${name})
+    set_tests_properties(${name} PROPERTIES SKIP_RETURN_CODE 77)
+endfunction()
+
+cldt_add_skeletal_test(test_protocol test_protocol.c)
+cldt_add_skeletal_test(test_clock_sync test_clock_sync.c)
+cldt_add_skeletal_test(test_metrics test_metrics.c)
+cldt_add_skeletal_test(test_control_profile test_control_profile.c)

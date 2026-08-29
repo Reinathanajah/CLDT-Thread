@@ -1,0 +1,49 @@
+{
+  "schema_version": "2.0",
+  "state": "template",
+  "experiment_id": "stable-baseline",
+  "title": "Stable Thread Baseline",
+  "purpose": {
+    "question": "What does normal deadline delivery look like on the physical Thread topology before modelling or policy changes?",
+    "comparison": "Repeated static runs with the same workload, no host model, and no remote actuation.",
+    "primary_metric": "Reconciled on-time delivery ratio for the critical stream."
+  },
+  "setup": {
+    "nodes": null,
+    "thread_channel": null,
+    "placement": null,
+    "firmware_reference": null
+  },
+  "execution": {
+    "warmup_s": null,
+    "measurement_s": null,
+    "cooldown_s": null,
+    "repetitions": null,
+    "seed": null
+  },
+  "traffic": { "streams": null },
+  "scenario": { "event": null, "at_s": null, "duration_s": null, "target": null },
+  "treatment": { "mode": null, "candidate_action": null, "control_profile": null, "host_model": null, "remote_actuation": null },
+  "acceptance": { "counter_reconciliation": null, "minimum_critical_on_time_pdr": null, "negative_case": null },
+  "evidence": { "required_artifacts": null, "operator_notes_required": null, "topology_photo_required": null },
+  "_todo": [
+    {
+      "path": "/setup",
+      "action": "Freeze the real four-board topology only after upstream RCP and border-router attachment are repeatable.",
+      "method": "Label the S3 gateway, RCP C6, router-capable C6, and low-power C6; survey the ordinary work area; select one 802.15.4 channel; mark board position, orientation, power path, and cables; then record actual Thread roles and binary identities.",
+      "done_when": "The same configuration survives power cycling, IPv6 reachability is confirmed, and placement plus role evidence are archived before a reportable run."
+    },
+    {
+      "path": "/execution",
+      "action": "Find a stable workload and run length that characterize normal variance without hiding queue behavior.",
+      "method": "Use three pilot repetitions with one critical and one telemetry stream. Adjust only one offered-load dimension at a time until the queue remains bounded, all counters reconcile, and the measurement window contains enough critical releases to make a service ratio meaningful.",
+      "done_when": "The ready file has frozen stream details, phase durations, seed, and repetition count derived from a traceable pilot decision."
+    },
+    {
+      "path": "/acceptance",
+      "action": "Set an engineering service floor and raw-evidence requirement before calibration data is used by any model.",
+      "method": "Choose a numerical critical on-time floor stricter than pilot noise, require reconciliation, set static/no-model/no-actuation treatment values, and require manifest, versions, topology, events, final counters, and operator notes in evidence.",
+      "done_when": "Every baseline run can be classified complete, invalid, or interrupted without looking at a later model result."
+    }
+  ]
+}

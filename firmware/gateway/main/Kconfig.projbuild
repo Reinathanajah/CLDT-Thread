@@ -1,0 +1,74 @@
+menu "CLDT Gateway"
+
+config CLDT_GATEWAY_NODE_ID
+    int "Provisioning fallback node ID"
+    range 1 4294967295
+    default 1
+    help
+        Used only before a provisioned identity is present in NVS.
+
+config CLDT_GATEWAY_RX_QUEUE_LENGTH
+    int "Thread receive queue slots"
+    range 4 128
+    default 32
+    help
+        Bounded slots between Thread receive and aggregation. Select using peak
+        observed arrival rate and consumer service time, then trace high-water.
+
+config CLDT_GATEWAY_TRACE_QUEUE_LENGTH
+    int "Observation queue slots"
+    range 16 512
+    default 128
+    help
+        Bounded observation queue. Overflow must become a visible health event;
+        this setting is not permission to retain arbitrary broker backlog.
+
+config CLDT_GATEWAY_MAX_TOTAL_RATE_PPS
+    int "Compiled maximum aggregate application rate"
+    range 1 500
+    default 100
+    help
+        Compiled aggregate ceiling enforced by the edge guard. It is independent
+        of host prediction and remains active during a host or broker failure.
+
+config CLDT_GATEWAY_MAX_POLICY_TTL_MS
+    int "Compiled maximum policy lifetime"
+    range 1000 60000
+    default 10000
+    help
+        Longest acceptable remote-policy lifetime. A control_profile may request
+        a shorter TTL but cannot extend a command beyond this local bound.
+
+config CLDT_GATEWAY_RCP_UART_RX_GPIO
+    int "RCP UART receive GPIO"
+    range 0 48
+    default 4
+    help
+        Gateway receive pin connected to the RCP transmit pin. Verify crossover,
+        voltage compatibility, and the selected RCP UART configuration together.
+
+config CLDT_GATEWAY_RCP_UART_TX_GPIO
+    int "RCP UART transmit GPIO"
+    range 0 48
+    default 5
+    help
+        Gateway transmit pin connected to the RCP receive pin. Record final
+        wiring, baud rate, and reset behavior in the upstream bring-up evidence.
+
+config CLDT_GATEWAY_RCP_RESET_GPIO
+    int "RCP reset GPIO"
+    range 0 48
+    default 7
+    help
+        Optional RCP reset control. Confirm board-specific boot/reset circuitry
+        before driving this pin; an incorrect default can prevent normal startup.
+
+config CLDT_GATEWAY_RCP_BOOT_GPIO
+    int "RCP boot GPIO"
+    range 0 48
+    default 8
+    help
+        Optional RCP boot-mode control. Treat this as board wiring, not a generic
+        ESP32 pin assignment, and validate it before automated flashing or reset.
+
+endmenu

@@ -1,0 +1,81 @@
+{
+  // This authoring copy tests command freshness through the normal gateway path.
+  // It must never bypass authentication or call an endpoint apply function directly.
+  "schema_version": "2.0",
+  "state": "template",
+  "experiment_id": "restart-replay-safety",
+  "title": "Restart And Command Replay Safety",
+  "purpose": {
+    "question": "Can a restarting endpoint reject stale or replayed policy epochs and resume only the current safe configuration?",
+    "comparison": "Command acceptance before restart, immediately after restart, and after fresh synchronization.",
+    "primary_metric": "Number of invalid policy applications after the deliberate restart."
+  },
+  "setup": {
+    // Use a topology where one normal authenticated finite-TTL command has already been accepted and acknowledged.
+    "nodes": null,
+    "thread_channel": null,
+    "placement": null,
+    "firmware_reference": null
+  },
+  "execution": {
+    "warmup_s": null,
+    // Include stable operation, restart, reattachment, replay attempts, and fresh synchronization.
+    "measurement_s": null,
+    "cooldown_s": null,
+    "repetitions": null,
+    "seed": null
+  },
+  "traffic": {
+    // Preserve the validated stable workload; do not add a load step to this safety case.
+    "streams": null
+  },
+  "scenario": {
+    // Use endpoint_restart and name the physical endpoint label that will be restarted.
+    "event": null,
+    "at_s": null,
+    // Duration must cover reattachment and fresh synchronization, not merely power-cycle time.
+    "duration_s": null,
+    "target": null
+  },
+  "treatment": {
+    // Safety mode may use only the already validated bounded bulk-rate action.
+    "mode": null,
+    "candidate_action": null,
+    "control_profile": null,
+    "host_model": null,
+    "remote_actuation": null
+  },
+  "acceptance": {
+    // Reconciliation still applies; a safety test is not exempt from accounting.
+    "counter_reconciliation": null,
+    "minimum_critical_on_time_pdr": null,
+    // Set the concrete negative outcome: any stale, replayed, or wrong-run policy application.
+    "negative_case": null
+  },
+  "evidence": {
+    // Require command audit with active run, old/new boot IDs, epoch, TTL, and per-attempt reason.
+    "required_artifacts": null,
+    "operator_notes_required": null,
+    "topology_photo_required": null
+  },
+  "_todo": [
+    {
+      "path": "/setup",
+      "action": "Establish normal command-path evidence before injecting a restart.",
+      "method": "Archive an accepted current command, acknowledgement, active run identity, endpoint boot ID, epoch, and TTL.",
+      "done_when": "There is a pre-restart baseline against which rejection behavior can be interpreted."
+    },
+    {
+      "path": "/scenario",
+      "action": "Define one restart and a finite set of replay attempts.",
+      "method": "Restart the selected endpoint, then submit old-epoch, expired, and wrong-run commands through the normal gateway path.",
+      "done_when": "Operator notes list exact invalid inputs and expected rejection reasons."
+    },
+    {
+      "path": "/acceptance",
+      "action": "Predeclare zero invalid applications.",
+      "method": "Require local fallback until fresh synchronization and retain complete command/audit evidence.",
+      "done_when": "A reviewer can reconstruct every attempted command."
+    }
+  ]
+}

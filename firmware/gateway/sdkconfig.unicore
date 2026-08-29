@@ -1,0 +1,2 @@
+# Apply this file in a separate build directory for the SMP comparison.
+CONFIG_FREERTOS_UNICORE=y

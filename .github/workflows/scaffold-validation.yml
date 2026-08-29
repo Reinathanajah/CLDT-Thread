@@ -1,0 +1,81 @@
+name: Scaffold Validation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  host-and-manifests:
+    name: Host Build and Manifest Contracts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Configure host scaffold
+        run: cmake -S . -B build -DCLDT_BUILD_TESTS=ON
+
+      - name: Build host scaffold
+        run: cmake --build build --parallel
+
+      - name: Run test harness
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install JSON Schema validator
+        run: python -m pip install --disable-pip-version-check "jsonschema==4.26.0"
+
+      - name: Validate experiment manifests
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          from jsonschema import Draft202012Validator
+
+          schema_path = Path("schemas/experiment.schema.json")
+          schema = json.loads(schema_path.read_text(encoding="utf-8"))
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+
+          strict_files = sorted(Path("experiments").glob("*.json"))
+          if not strict_files:
+              raise SystemExit("No strict experiment manifests were found.")
+
+          strict_ids = {}
+          for path in strict_files:
+              document = json.loads(path.read_text(encoding="utf-8"))
+              errors = sorted(validator.iter_errors(document), key=lambda error: list(error.path))
+              if errors:
+                  for error in errors:
+                      location = "/" + "/".join(str(part) for part in error.path)
+                      print(f"{path}:{location}: {error.message}")
+                  raise SystemExit(f"Schema validation failed for {path}.")
+              strict_ids[path.stem] = document["experiment_id"]
+
+          authoring_files = sorted(Path("experiments/authoring").glob("*.jsonc"))
+          if len(authoring_files) != len(strict_files):
+              raise SystemExit("Strict JSON and JSONC authoring manifest counts differ.")
+
+          for path in authoring_files:
+              uncommented = "\n".join(
+                  line for line in path.read_text(encoding="utf-8").splitlines()
+                  if not line.lstrip().startswith("//")
+              )
+              document = json.loads(uncommented)
+              if document["experiment_id"] != strict_ids.get(path.stem):
+                  raise SystemExit(f"Experiment ID mismatch for {path}.")
+
+          print(f"Validated {len(strict_files)} strict manifests and {len(authoring_files)} authoring copies.")
+          PY

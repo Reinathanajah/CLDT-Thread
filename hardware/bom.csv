@@ -1,0 +1,13 @@
+item,role,quantity,unit_ceiling_idr,subtotal_ceiling_idr,required,source,date_checked,assumption
+ESP32-S3 N16R8 DevKitC,dual-core border-router host and local guard,1,160000,160000,yes,https://jogjarobotika.com/produk/6151/esp32-s3-n16r8-devkitc-1-type-c-esp32-s3-wroom-16mb-flash-8mb-psram-esp32s3-dev-board-module,2026-08-29,Select one board revision and record it
+Seeed Studio XIAO ESP32-C6,one RCP and two Thread endpoints,3,160000,480000,yes,https://digiwarestore.com/id/microcontroller-dev-tools/seeed-studio-xiao-esp32c6-with-dual-32-bit-risc-v-processors-support-24ghz-wifi-6-ble-50-zigbee-and-thread-442532.html,2026-08-29,Use identical antenna and board variants
+Powered four-port USB hub,stable development power and serial access,1,160000,160000,yes,https://www.monotaro.id/k/store/usb%20hub%204%20port,2026-08-29,Verify the supply rating before connecting all boards
+USB-C data cables,programming and power,4,25000,100000,yes,local electronics seller,2026-08-29,Confirm every cable carries data
+INA219 modules,comparative endpoint energy measurement,2,25000,50000,yes,https://www.easyware.co.id/product/cjmcu-219-ina219-i2c-bidirectional-current-power-monitor-module-%E2%9C%85/,2026-08-29,Calibrate and assign a permanent sensor ID
+GY-BME280 module,real but non-critical IoT sample source,1,90000,90000,no,https://www.easyware.co.id/product/gy-bme280-sensor-suhu-kelembaban-tekanan-i2c-spi-3v3-5v/,2026-08-29,Synthetic payloads remain the experimental baseline
+Breadboards headers jumpers passives and UART wiring,assembly and controlled event input,1,150000,150000,yes,local electronics seller,2026-08-29,Do not power a board from two sources
+Shipping,delivery allowance,1,150000,150000,yes,n/a,2026-08-29,Recalculate before checkout
+Replacement and price reserve,hard-cap contingency,1,160000,160000,yes,n/a,2026-08-29,Do not spend unless a required item changes or fails
+Existing laptop,host model recorder broker and analysis,1,0,0,yes,existing equipment,2026-08-29,Not included in the Rp1500000 project budget
+Existing 2.4 GHz Wi-Fi access point,private backhaul LAN,1,0,0,yes,existing equipment,2026-08-29,No Wi-Fi 6 performance claim
+TOTAL,,,,1500000,,,,Hard ceiling; reprice before purchasing

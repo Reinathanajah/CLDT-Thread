@@ -1,0 +1,41 @@
+# Native host build
+/build/
+/out/
+CMakeUserPresets.json
+
+# ESP-IDF outputs
+firmware/**/build/
+firmware/**/sdkconfig
+firmware/**/sdkconfig.old
+firmware/**/managed_components/
+dependencies.lock
+
+# Experiment data: keep manifests, not bulky or machine-specific results
+results/raw/
+results/private/
+# Do not ignore experiments/*.json: template and ready manifests are evidence.
+
+# Credentials and local network details
+secrets/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+
+# Tools and editors
+.cache/
+.vscode/
+.idea/
+compile_commands.json
+*.swp
+*~
+
+# Operating systems
+.DS_Store
+Thumbs.db
+Desktop.ini

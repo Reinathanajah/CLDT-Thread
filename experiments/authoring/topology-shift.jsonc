@@ -1,0 +1,78 @@
+{
+  // This authoring copy plans one controlled physical placement change and no additional injected fault.
+  "schema_version": "2.0",
+  "state": "template",
+  "experiment_id": "topology-shift",
+  "title": "Controlled Topology Shift",
+  "purpose": {
+    "question": "Does the model detect and report loss of fidelity when one physical endpoint placement changes?",
+    "comparison": "Prediction residual and gate state before versus after a preregistered endpoint placement change.",
+    "primary_metric": "Time to gate abstention or documented retained fidelity after the shift."
+  },
+  "setup": {
+    // Describe reproducible before/after locations for one endpoint: distance, height, orientation, obstacles, cables, and photos.
+    "nodes": null,
+    "thread_channel": null,
+    "placement": null,
+    "firmware_reference": null
+  },
+  "execution": {
+    "warmup_s": null,
+    // Measurement must contain stable pre-shift, movement, and enough post-shift recovery/degradation time.
+    "measurement_s": null,
+    "cooldown_s": null,
+    "repetitions": null,
+    "seed": null
+  },
+  "traffic": {
+    // Reuse completed baseline streams unchanged so placement is the sole intended disturbance.
+    "streams": null
+  },
+  "scenario": {
+    // Use topology_shift and name exactly one movable endpoint label.
+    "event": null,
+    "at_s": null,
+    "duration_s": null,
+    "target": null
+  },
+  "treatment": {
+    // Start as prediction/shadow mode with remote actuation false unless the primary safety chain is already complete.
+    "mode": null,
+    "candidate_action": null,
+    "control_profile": null,
+    "host_model": null,
+    "remote_actuation": null
+  },
+  "acceptance": {
+    "counter_reconciliation": null,
+    "minimum_critical_on_time_pdr": null,
+    // Define invalid case such as unrecorded second placement change or unplanned restart/load change.
+    "negative_case": null
+  },
+  "evidence": {
+    // Require before/after photos, placement measurements, Thread role/parent snapshots, residual/gate report, and raw events.
+    "required_artifacts": null,
+    "operator_notes_required": null,
+    "topology_photo_required": null
+  },
+  "_todo": [
+    {
+      "path": "/setup",
+      "action": "Make both physical positions reproducible.",
+      "method": "Mark and photograph locations; freeze gateway/RCP/other endpoint positions and record role/parent/link state at each position.",
+      "done_when": "A second operator can recreate both configurations."
+    },
+    {
+      "path": "/scenario",
+      "action": "Inject one documented shift.",
+      "method": "Move only the named endpoint after warm-up and reserve a post-shift interval; do not combine restart or load step.",
+      "done_when": "Placement is the sole intended cause of change."
+    },
+    {
+      "path": "/treatment",
+      "action": "Predeclare acceptable fidelity outcomes.",
+      "method": "Freeze the gate/calibration limits and permit a conclusion of either retained fidelity or abstention.",
+      "done_when": "The graph cannot choose the rule after the result is known."
+    }
+  ]
+}

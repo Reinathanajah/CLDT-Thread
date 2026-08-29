@@ -1,0 +1,86 @@
+{
+  // This is the authoring guide for ../local-rtos-baseline.json.
+  // Thread and Wi-Fi must remain inactive for this local-accounting experiment.
+  "schema_version": "2.0",
+  "state": "template",
+  "experiment_id": "local-rtos-accounting",
+  "title": "Local RTOS Accounting Baseline",
+  "purpose": {
+    "question": "Can one endpoint account for every released item before Thread networking is introduced?",
+    "comparison": "Critical and bulk queue behavior on a local endpoint with networking disabled.",
+    "primary_metric": "Zero unreconciled items across release, queue, expiry, and terminal accounting."
+  },
+  "setup": {
+    // Use the actual endpoint label; retain later topology roles only as context, not as a dependency.
+    "nodes": null,
+    // Record the intended later Thread channel only if it is known; radio attachment remains disabled here.
+    "thread_channel": null,
+    // State bench position, power source, and that no Thread network is active.
+    "placement": null,
+    // Include endpoint source revision, sdkconfig hash, binary hash, and local-test build option.
+    "firmware_reference": null
+  },
+  "execution": {
+    // Warm-up allows timers and trace buffers to reach steady state before measurement.
+    "warmup_s": null,
+    // Include enough releases to exercise periodic critical work and bounded bulk burst behavior.
+    "measurement_s": null,
+    "cooldown_s": null,
+    "repetitions": null,
+    // The seed must reproduce workload release and any deterministic burst pattern.
+    "seed": null
+  },
+  "traffic": {
+    // Define one critical and one bulk stream with explicit period, deadline, payload, and burst.
+    "streams": null
+  },
+  "scenario": {
+    // Use event none unless one declared local queue disturbance is introduced.
+    "event": null,
+    "at_s": null,
+    "duration_s": null,
+    "target": null
+  },
+  "treatment": {
+    // Local accounting is baseline behavior: no model and no remote policy.
+    "mode": null,
+    "candidate_action": null,
+    "control_profile": null,
+    "host_model": null,
+    "remote_actuation": null
+  },
+  "acceptance": {
+    // Set true only after the implementation can reconcile each logical work item.
+    "counter_reconciliation": null,
+    // Choose a local service floor only if clock/deadline accounting is ready to support it.
+    "minimum_critical_on_time_pdr": null,
+    // Require an explicit invalidation rule such as missing terminal trace records.
+    "negative_case": null
+  },
+  "evidence": {
+    // Require raw local trace, counters, binary identity, manifest, and operator notes.
+    "required_artifacts": null,
+    "operator_notes_required": null,
+    "topology_photo_required": null
+  },
+  "_todo": [
+    {
+      "path": "/setup",
+      "action": "Create a reproducible local endpoint build.",
+      "method": "Archive board label, firmware identity, power path, and proof that Thread attachment is disabled.",
+      "done_when": "Cold boot reaches local test mode without radio attachment."
+    },
+    {
+      "path": "/execution",
+      "action": "Select timing from traceable pilots.",
+      "method": "Exercise critical-only, bulk-only, and combined paths; capture release, admission, expiry, and terminal events.",
+      "done_when": "Every intended path appears and no released item is unexplained."
+    },
+    {
+      "path": "/acceptance",
+      "action": "Turn the result into a real accounting gate.",
+      "method": "Require reconciliation and retain evidence that lets another reader recompute terminal outcomes offline.",
+      "done_when": "No network performance claim is needed to validate the local result."
+    }
+  ]
+}

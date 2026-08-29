@@ -1,0 +1,49 @@
+{
+  "schema_version": "2.0",
+  "state": "template",
+  "experiment_id": "load-step-prediction",
+  "title": "Held-Out Load-Step Prediction",
+  "purpose": {
+    "question": "Can a cross-layer model predict critical deadline degradation when a known bulk load step is introduced?",
+    "comparison": "Network-only and cross-layer predictions on a load pattern not used to tune the model.",
+    "primary_metric": "Held-out error of predicted critical on-time delivery ratio."
+  },
+  "setup": {
+    "nodes": null,
+    "thread_channel": null,
+    "placement": null,
+    "firmware_reference": null
+  },
+  "execution": {
+    "warmup_s": null,
+    "measurement_s": null,
+    "cooldown_s": null,
+    "repetitions": null,
+    "seed": null
+  },
+  "traffic": { "streams": null },
+  "scenario": { "event": null, "at_s": null, "duration_s": null, "target": null },
+  "treatment": { "mode": null, "candidate_action": null, "control_profile": null, "host_model": null, "remote_actuation": null },
+  "acceptance": { "counter_reconciliation": null, "minimum_critical_on_time_pdr": null, "negative_case": null },
+  "evidence": { "required_artifacts": null, "operator_notes_required": null, "topology_photo_required": null },
+  "_todo": [
+    {
+      "path": "/setup",
+      "action": "Bind this held-out condition to a completed stable-baseline block before changing workload shape.",
+      "method": "Copy the validated physical board identities, channel, placement, and firmware reference from one archived baseline block. If any of those facts change, declare a new calibration block instead of calling the traces held out.",
+      "done_when": "The ready file cites a specific baseline evidence bundle and no network or firmware change is hidden inside the prediction condition."
+    },
+    {
+      "path": "/traffic",
+      "action": "Design one recoverable bulk load step while preserving the frozen critical stream.",
+      "method": "Use pilots outside the final set to increase only bulk period, payload, or burst until critical behavior changes measurably but the queue and radio recover. Place the step after warm-up, keep it inside measurement, and define its target and duration before observing any held-out result.",
+      "done_when": "The ready file fixes all streams, event time, duration, seed, and repetition count, and pilot logs show a visible but recoverable disturbance."
+    },
+    {
+      "path": "/treatment",
+      "action": "Keep this experiment as a shadow-model prediction test, not a disguised controller test.",
+      "method": "Set prediction mode, enable the host model, disable remote actuation, choose a critical service floor from the baseline, and require raw traces plus a prediction report that identifies calibration data, model revision, prediction horizon, and both model feature sets.",
+      "done_when": "No held-out observation is used to tune model parameters and the report can score network-only and cross-layer predictions on exactly the same horizons."
+    }
+  ]
+}

@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Reinathanajah/CLDT-Thread/main/schemas/experiment.schema.json",
+  "title": "CLDT Experiment Manifest",
+  "description": "A deliberately small, two-stage contract. A template may retain null decisions and actionable _todo entries; a ready manifest may not.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "state", "experiment_id", "title", "purpose", "_todo"],
+  "properties": {
+    "schema_version": { "const": "2.0" },
+    "state": { "enum": ["template", "ready"] },
+    "experiment_id": { "$ref": "#/$defs/identifier" },
+    "title": { "type": "string", "minLength": 8, "maxLength": 120 },
+    "purpose": { "$ref": "#/$defs/purpose" },
+    "_todo": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/todo" }
+    },
+    "setup": { "$ref": "#/$defs/template_setup" },
+    "execution": { "$ref": "#/$defs/template_execution" },
+    "traffic": { "$ref": "#/$defs/template_traffic" },
+    "scenario": { "$ref": "#/$defs/template_scenario" },
+    "treatment": { "$ref": "#/$defs/template_treatment" },
+    "acceptance": { "$ref": "#/$defs/template_acceptance" },
+    "evidence": { "$ref": "#/$defs/template_evidence" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "state": { "const": "template" } } },
+      "then": { "properties": { "_todo": { "minItems": 1 } } }
+    },
+    {
+      "if": { "properties": { "state": { "const": "ready" } } },
+      "then": {
+        "required": ["setup", "execution", "traffic", "scenario", "treatment", "acceptance", "evidence"],
+        "properties": {
+          "_todo": { "maxItems": 0 },
+          "setup": { "$ref": "#/$defs/ready_setup" },
+          "execution": { "$ref": "#/$defs/ready_execution" },
+          "traffic": { "$ref": "#/$defs/ready_traffic" },
+          "scenario": { "$ref": "#/$defs/ready_scenario" },
+          "treatment": { "$ref": "#/$defs/ready_treatment" },
+          "acceptance": { "$ref": "#/$defs/ready_acceptance" },
+          "evidence": { "$ref": "#/$defs/ready_evidence" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 512
+    },
+    "purpose": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "comparison", "primary_metric"],
+      "properties": {
+        "question": { "$ref": "#/$defs/non_empty_text" },
+        "comparison": { "$ref": "#/$defs/non_empty_text" },
+        "primary_metric": { "$ref": "#/$defs/non_empty_text" }
+      }
+    },
+    "todo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "action", "method", "done_when"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^/" },
+        "action": { "$ref": "#/$defs/non_empty_text" },
+        "method": { "$ref": "#/$defs/non_empty_text" },
+        "done_when": { "$ref": "#/$defs/non_empty_text" }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "board", "role"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "board": { "enum": ["esp32-s3", "esp32-c6"] },
+        "role": { "enum": ["gateway", "radio_coprocessor", "router_endpoint", "low_power_endpoint"] }
+      }
+    },
+    "template_setup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nodes": { "type": ["array", "null"], "maxItems": 4, "uniqueItems": true, "items": { "$ref": "#/$defs/node" } },
+        "thread_channel": { "type": ["integer", "null"], "minimum": 11, "maximum": 26 },
+        "placement": { "type": ["string", "null"], "maxLength": 160 },
+        "firmware_reference": { "type": ["string", "null"], "maxLength": 160 }
+      }
+    },
+    "ready_setup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "thread_channel", "placement", "firmware_reference"],
+      "properties": {
+        "nodes": { "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true, "items": { "$ref": "#/$defs/node" } },
+        "thread_channel": { "type": "integer", "minimum": 11, "maximum": 26 },
+        "placement": { "$ref": "#/$defs/non_empty_text" },
+        "firmware_reference": { "$ref": "#/$defs/non_empty_text" }
+      }
+    },
+    "template_execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "warmup_s": { "type": ["integer", "null"], "minimum": 5, "maximum": 300 },
+        "measurement_s": { "type": ["integer", "null"], "minimum": 30, "maximum": 3600 },
+        "cooldown_s": { "type": ["integer", "null"], "minimum": 5, "maximum": 300 },
+        "repetitions": { "type": ["integer", "null"], "minimum": 1, "maximum": 30 },
+        "seed": { "type": ["integer", "null"], "minimum": 0, "maximum": 4294967295 }
+      }
+    },
+    "ready_execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["warmup_s", "measurement_s", "cooldown_s", "repetitions", "seed"],
+      "properties": {
+        "warmup_s": { "type": "integer", "minimum": 5, "maximum": 300 },
+        "measurement_s": { "type": "integer", "minimum": 30, "maximum": 3600 },
+        "cooldown_s": { "type": "integer", "minimum": 5, "maximum": 300 },
+        "repetitions": { "type": "integer", "minimum": 1, "maximum": 30 },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 }
+      }
+    },
+    "stream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source", "class", "period_ms", "payload_bytes", "deadline_ms", "burst_packets"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "source": { "$ref": "#/$defs/identifier" },
+        "class": { "enum": ["control", "critical", "telemetry", "bulk"] },
+        "period_ms": { "type": ["integer", "null"], "minimum": 10, "maximum": 3600000 },
+        "payload_bytes": { "type": ["integer", "null"], "minimum": 1, "maximum": 256 },
+        "deadline_ms": { "type": ["integer", "null"], "minimum": 10, "maximum": 3600000 },
+        "burst_packets": { "type": ["integer", "null"], "minimum": 1, "maximum": 100 }
+      }
+    },
+    "ready_stream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source", "class", "period_ms", "payload_bytes", "deadline_ms", "burst_packets"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "source": { "$ref": "#/$defs/identifier" },
+        "class": { "enum": ["control", "critical", "telemetry", "bulk"] },
+        "period_ms": { "type": "integer", "minimum": 10, "maximum": 3600000 },
+        "payload_bytes": { "type": "integer", "minimum": 1, "maximum": 256 },
+        "deadline_ms": { "type": "integer", "minimum": 10, "maximum": 3600000 },
+        "burst_packets": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    },
+    "template_traffic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "streams": { "type": ["array", "null"], "maxItems": 4, "uniqueItems": true, "items": { "$ref": "#/$defs/stream" } } }
+    },
+    "ready_traffic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["streams"],
+      "properties": { "streams": { "type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true, "items": { "$ref": "#/$defs/ready_stream" } } }
+    },
+    "template_scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "event": { "enum": ["none", "load_step", "observation_pause", "endpoint_restart", "topology_shift", null] },
+        "at_s": { "type": ["integer", "null"], "minimum": 0, "maximum": 3600 },
+        "duration_s": { "type": ["integer", "null"], "minimum": 0, "maximum": 3600 },
+        "target": { "type": ["string", "null"], "maxLength": 120 }
+      }
+    },
+    "ready_scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "at_s", "duration_s", "target"],
+      "properties": {
+        "event": { "enum": ["none", "load_step", "observation_pause", "endpoint_restart", "topology_shift"] },
+        "at_s": { "type": "integer", "minimum": 0, "maximum": 3600 },
+        "duration_s": { "type": "integer", "minimum": 0, "maximum": 3600 },
+        "target": { "$ref": "#/$defs/non_empty_text" }
+      }
+    },
+    "template_treatment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["baseline", "prediction", "gated_control", "safety", "smp", "power", null] },
+        "candidate_action": { "enum": ["none", "bulk_rate_reduce", "phase_stagger", "power_profile", null] },
+        "control_profile": { "type": ["string", "null"], "maxLength": 160 },
+        "host_model": { "type": ["boolean", "null"] },
+        "remote_actuation": { "type": ["boolean", "null"] }
+      }
+    },
+    "ready_treatment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "candidate_action", "control_profile", "host_model", "remote_actuation"],
+      "properties": {
+        "mode": { "enum": ["baseline", "prediction", "gated_control", "safety", "smp", "power"] },
+        "candidate_action": { "enum": ["none", "bulk_rate_reduce", "phase_stagger", "power_profile"] },
+        "control_profile": { "$ref": "#/$defs/non_empty_text" },
+        "host_model": { "type": "boolean" },
+        "remote_actuation": { "type": "boolean" }
+      }
+    },
+    "template_acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "counter_reconciliation": { "type": ["boolean", "null"] },
+        "minimum_critical_on_time_pdr": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "negative_case": { "type": ["string", "null"], "maxLength": 120 }
+      }
+    },
+    "ready_acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["counter_reconciliation", "minimum_critical_on_time_pdr", "negative_case"],
+      "properties": {
+        "counter_reconciliation": { "const": true },
+        "minimum_critical_on_time_pdr": { "type": "number", "minimum": 0, "maximum": 1 },
+        "negative_case": { "$ref": "#/$defs/non_empty_text" }
+      }
+    },
+    "template_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required_artifacts": { "type": ["array", "null"], "maxItems": 8, "uniqueItems": true, "items": { "$ref": "#/$defs/non_empty_text" } },
+        "operator_notes_required": { "type": ["boolean", "null"] },
+        "topology_photo_required": { "type": ["boolean", "null"] }
+      }
+    },
+    "ready_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_artifacts", "operator_notes_required", "topology_photo_required"],
+      "properties": {
+        "required_artifacts": { "type": "array", "minItems": 4, "maxItems": 8, "uniqueItems": true, "items": { "$ref": "#/$defs/non_empty_text" } },
+        "operator_notes_required": { "const": true },
+        "topology_photo_required": { "type": "boolean" }
+      }
+    }
+  }
+}

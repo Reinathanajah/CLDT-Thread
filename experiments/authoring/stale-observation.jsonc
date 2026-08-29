@@ -1,0 +1,80 @@
+{
+  // This authoring copy plans a safety fallback test without disturbing RF or Thread routing.
+  "schema_version": "2.0",
+  "state": "template",
+  "experiment_id": "stale-observation-fallback",
+  "title": "Stale Observation Safety Fallback",
+  "purpose": {
+    "question": "Does the fidelity gate abstain and restore the local safe policy when host observations become stale?",
+    "comparison": "Gated control before the observation pause versus the gateway state during and after the pause.",
+    "primary_metric": "Time from stale-observation condition to recorded local fallback."
+  },
+  "setup": {
+    // Reuse a fully validated physical baseline; identify the exact gateway-to-host publication path to pause.
+    "nodes": null,
+    "thread_channel": null,
+    "placement": null,
+    "firmware_reference": null
+  },
+  "execution": {
+    "warmup_s": null,
+    "measurement_s": null,
+    "cooldown_s": null,
+    "repetitions": null,
+    "seed": null
+  },
+  "traffic": {
+    // Preserve the critical traffic profile while allowing one bounded bulk control surface.
+    "streams": null
+  },
+  "scenario": {
+    // Use observation_pause. Duration must exceed maximum_observation_age_ms with a recorded margin.
+    "event": null,
+    "at_s": null,
+    "duration_s": null,
+    // Name the publication gate or adapter that stops observations, not the Thread radio.
+    "target": null
+  },
+  "treatment": {
+    // Required after normal command path exists: gated_control, bulk_rate_reduce, host model and remote actuation enabled.
+    "mode": null,
+    "candidate_action": null,
+    // Name a resolved profile with finite TTL and documented freshness/hysteresis limits.
+    "control_profile": null,
+    "host_model": null,
+    "remote_actuation": null
+  },
+  "acceptance": {
+    "counter_reconciliation": null,
+    // The same critical floor applies before and after fallback.
+    "minimum_critical_on_time_pdr": null,
+    // State the expected invalid condition, for example fallback not reached by the predeclared deadline.
+    "negative_case": null
+  },
+  "evidence": {
+    // Require newest observation, gate transition, command audit, fallback record, counters, and recovery evidence.
+    "required_artifacts": null,
+    "operator_notes_required": null,
+    "topology_photo_required": null
+  },
+  "_todo": [
+    {
+      "path": "/setup",
+      "action": "Prove that only observations stop.",
+      "method": "Add an application-level publication gate and dry-run it while physical endpoint traffic remains visible locally.",
+      "done_when": "The pause boundary is traceable and no RF impairment is used."
+    },
+    {
+      "path": "/scenario",
+      "action": "Schedule stale data beyond the frozen freshness limit.",
+      "method": "Measure normal observation age, record the profile limit, choose pause timing after warm-up, and use one injected fault.",
+      "done_when": "Expected latest fallback time is recorded before the run."
+    },
+    {
+      "path": "/treatment",
+      "action": "Enable only a finite bounded bulk action.",
+      "method": "Require gateway and endpoint acknowledgements for accept, reject, expiry, and fallback.",
+      "done_when": "The evidence can reconstruct the entire withdrawal path."
+    }
+  ]
+}

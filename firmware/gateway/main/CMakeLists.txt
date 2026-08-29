@@ -1,0 +1,22 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "gateway_runtime.c"
+        "gateway_provisioning.c"
+        "thread_bridge.c"
+        "backhaul.c"
+        "policy_guard.c"
+    INCLUDE_DIRS "."
+    REQUIRES
+        common
+        freertos
+        nvs_flash
+        esp_event
+        esp_netif
+        esp_wifi
+        esp_timer
+        bt
+        mqtt
+        esp_http_server
+        openthread
+)

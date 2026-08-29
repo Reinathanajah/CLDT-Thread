@@ -1,0 +1,19 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "endpoint_runtime.c"
+        "deadline_queue.c"
+        "workload.c"
+        "thread_transport.c"
+        "power_probe.c"
+    INCLUDE_DIRS "."
+    REQUIRES
+        common
+        freertos
+        nvs_flash
+        esp_event
+        esp_netif
+        esp_timer
+        driver
+        openthread
+)

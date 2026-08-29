@@ -1,0 +1,69 @@
+menu "CLDT Endpoint"
+
+config CLDT_ENDPOINT_NODE_ID
+    int "Provisioning fallback node ID"
+    range 1 4294967295
+    default 100
+    help
+        Used only before the endpoint receives a provisioned identity. Record the
+        final identity in run evidence; do not use a MAC address or an ad hoc hash.
+
+choice CLDT_ENDPOINT_ROLE
+    prompt "Endpoint role"
+    default CLDT_ENDPOINT_ROUTER
+
+config CLDT_ENDPOINT_ROUTER
+    bool "Router-capable endpoint"
+    help
+        Enables the project role expected to be router-capable. Actual Thread role
+        remains an observed run fact and must not be inferred from this selection.
+
+config CLDT_ENDPOINT_LOW_POWER
+    bool "Low-power end device"
+    help
+        Selects the endpoint role used by the energy template. It does not itself
+        prove a low-power Thread configuration or an energy saving.
+
+endchoice
+
+config CLDT_ENDPOINT_POOL_SLOTS
+    int "Fixed message slots"
+    range 8 128
+    default 32
+    help
+        Compile-time queue-pool capacity. Choose from measured peak occupancy and
+        preserve a control/critical reservation; never grow it only to hide loss.
+
+config CLDT_ENDPOINT_MAX_TOTAL_RATE_PPS
+    int "Compiled maximum aggregate application rate"
+    range 1 500
+    default 100
+    help
+        Hard local ceiling across all application streams. A ready manifest may
+        request less, but no host policy can raise this value during a run.
+
+config CLDT_ENDPOINT_EVENT_GPIO
+    int "Local event input GPIO"
+    range 0 30
+    default 9
+    help
+        GPIO used for the optional local event ISR. Verify board pin capability,
+        pull mode, and debounce behavior before enabling a physical event source.
+
+config CLDT_ENDPOINT_I2C_SDA_GPIO
+    int "Power-probe I2C SDA GPIO"
+    range 0 30
+    default 6
+    help
+        SDA pin for the optional INA219 path. Replace only after checking the
+        actual board pinout and record the final wiring in the energy evidence.
+
+config CLDT_ENDPOINT_I2C_SCL_GPIO
+    int "Power-probe I2C SCL GPIO"
+    range 0 30
+    default 7
+    help
+        SCL pin for the optional INA219 path. Do not assume another board's I2C
+        defaults apply to this C6 variant.
+
+endmenu

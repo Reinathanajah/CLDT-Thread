@@ -1,0 +1,49 @@
+{
+  "schema_version": "2.0",
+  "state": "template",
+  "experiment_id": "stale-observation-fallback",
+  "title": "Stale Observation Safety Fallback",
+  "purpose": {
+    "question": "Does the fidelity gate abstain and restore the local safe policy when host observations become stale?",
+    "comparison": "Gated control before the observation pause versus the gateway state during and after the pause.",
+    "primary_metric": "Time from stale-observation condition to recorded local fallback."
+  },
+  "setup": {
+    "nodes": null,
+    "thread_channel": null,
+    "placement": null,
+    "firmware_reference": null
+  },
+  "execution": {
+    "warmup_s": null,
+    "measurement_s": null,
+    "cooldown_s": null,
+    "repetitions": null,
+    "seed": null
+  },
+  "traffic": { "streams": null },
+  "scenario": { "event": null, "at_s": null, "duration_s": null, "target": null },
+  "treatment": { "mode": null, "candidate_action": null, "control_profile": null, "host_model": null, "remote_actuation": null },
+  "acceptance": { "counter_reconciliation": null, "minimum_critical_on_time_pdr": null, "negative_case": null },
+  "evidence": { "required_artifacts": null, "operator_notes_required": null, "topology_photo_required": null },
+  "_todo": [
+    {
+      "path": "/setup",
+      "action": "Reuse a validated stable Thread block and identify the precise gateway-to-host observation path that will be paused.",
+      "method": "Freeze board roles, placement, channel, binaries, and normal observation cadence. Add an application-level publication gate at the gateway or host adapter; do not jam RF, stop endpoints, or modify Thread routing for this test.",
+      "done_when": "A dry run shows physical endpoint traffic continues while the chosen observation stream stops at a traceable boundary."
+    },
+    {
+      "path": "/scenario",
+      "action": "Schedule a stale-observation interval that is longer than the calibrated freshness limit and short enough to observe recovery.",
+      "method": "Measure normal observation age first, freeze the gate's freshness threshold in the versioned control profile, then choose pause time after warm-up and duration with margin beyond that threshold. Use only one fault in the run.",
+      "done_when": "The ready manifest identifies observation_pause, its monotonic time, duration, and target; operator notes state the expected latest fallback time."
+    },
+    {
+      "path": "/treatment",
+      "action": "Enable only one finite, locally bounded action before proving its withdrawal.",
+      "method": "Use bulk-rate reduction only, turn on the host model and remote actuation, set a finite command TTL in the control profile, keep a compiled safe static policy, and require gateway and endpoint acknowledgements for acceptance, rejection, expiry, and fallback.",
+      "done_when": "The evidence includes last accepted observation, gate transition, command or expiry decision, local fallback, post-fallback counters, and a critical-service floor that the fallback must preserve."
+    }
+  ]
+}

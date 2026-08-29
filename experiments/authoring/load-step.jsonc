@@ -1,0 +1,80 @@
+{
+  // This authoring copy plans a held-out prediction experiment, never a controller test.
+  "schema_version": "2.0",
+  "state": "template",
+  "experiment_id": "load-step-prediction",
+  "title": "Held-Out Load-Step Prediction",
+  "purpose": {
+    "question": "Can a cross-layer model predict critical deadline degradation when a known bulk load step is introduced?",
+    "comparison": "Network-only and cross-layer predictions on a load pattern not used to tune the model.",
+    "primary_metric": "Held-out error of predicted critical on-time delivery ratio."
+  },
+  "setup": {
+    // Copy the completed stable baseline topology exactly and cite its evidence-bundle identifier.
+    "nodes": null,
+    "thread_channel": null,
+    "placement": null,
+    "firmware_reference": null
+  },
+  "execution": {
+    // Keep the same phase structure as the baseline unless a predeclared reason requires change.
+    "warmup_s": null,
+    "measurement_s": null,
+    "cooldown_s": null,
+    "repetitions": null,
+    "seed": null
+  },
+  "traffic": {
+    // Freeze the critical stream; alter only predeclared bulk period, payload, or burst to form the load step.
+    "streams": null
+  },
+  "scenario": {
+    // Use load_step after warm-up and inside the measured window; identify the affected bulk stream.
+    "event": null,
+    "at_s": null,
+    "duration_s": null,
+    "target": null
+  },
+  "treatment": {
+    // Required: prediction mode, host_model true, remote_actuation false, candidate_action none.
+    "mode": null,
+    "candidate_action": null,
+    // Name the calibration/profile identity frozen before held-out scoring.
+    "control_profile": null,
+    "host_model": null,
+    "remote_actuation": null
+  },
+  "acceptance": {
+    "counter_reconciliation": null,
+    // Carry forward the baseline critical-service floor rather than loosening it after the step.
+    "minimum_critical_on_time_pdr": null,
+    // Define an invalid case such as model code or physical topology changing during the held-out block.
+    "negative_case": null
+  },
+  "evidence": {
+    // Include calibration/held-out split, both feature-set predictions, raw traces, and model revision.
+    "required_artifacts": null,
+    "operator_notes_required": null,
+    "topology_photo_required": null
+  },
+  "_todo": [
+    {
+      "path": "/setup",
+      "action": "Bind this run to one completed baseline block.",
+      "method": "Reuse board identities, channel, placement, and firmware; declare a new calibration block if any one changes.",
+      "done_when": "No network or firmware change is hidden inside the prediction condition."
+    },
+    {
+      "path": "/traffic",
+      "action": "Create one recoverable bulk load step.",
+      "method": "Use pilots outside the final set until critical behavior changes measurably but queues and radios recover.",
+      "done_when": "Step time, duration, stream values, seed, and repetitions are frozen before held-out analysis."
+    },
+    {
+      "path": "/treatment",
+      "action": "Keep the run strictly shadow-only.",
+      "method": "Score both models on identical future horizons and prohibit model tuning from held-out observations.",
+      "done_when": "No remote policy can be issued in this condition."
+    }
+  ]
+}
