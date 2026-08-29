@@ -163,7 +163,7 @@ Version 1 uses a fixed 72-byte header. The offsets below are normative and are a
 | 52–55 | CRC-32C (Castagnoli polynomial `0x1EDC6F41`) |
 | 56–71 | Authentication tag (16-byte Poly1305 tag) |
 
-A version 1 policy command uses an 80-byte payload in this exact order: four 32-bit release periods, four 32-bit phase offsets, four 16-bit burst limits, four 16-bit batch sizes, four 32-bit token rates, a 32-bit epoch, a 64-bit gateway issue time, and a 32-bit TTL. The payload epoch must equal the header epoch. Under version 1, policy command payload bytes (bytes 72–151) remain in plaintext on the wire and are authenticated alongside header bytes 0–51 (AAD) by the 16-byte Poly1305 tag. If full payload ciphertext confidentiality is required in a future revision, that wire representation decision must be frozen before implementation.
+A version 1 policy command uses an 80-byte payload in this exact order: four 32-bit release periods, four 32-bit phase offsets, four 16-bit burst limits, four 16-bit batch sizes, four 32-bit token rates, a 32-bit epoch, a 64-bit gateway issue time, and a 32-bit TTL. The payload epoch must equal the header epoch. Under version 1, policy commands use an **authenticated plaintext** wire format (no payload confidentiality is claimed). The ChaCha20-Poly1305 AEAD invocation authenticates the command by treating header bytes 0–51 and the 80-byte policy payload (bytes 72–151) as Associated Authenticated Data (AAD, 132 bytes total) with zero plaintext/ciphertext payload length, producing the 16-byte Poly1305 tag (bytes 56–71).
 
 | Field Or Concept | Why It Exists | Required Validation |
 |---|---|---|
@@ -173,7 +173,7 @@ A version 1 policy command uses an 80-byte payload in this exact order: four 32-
 | Sequence and policy epoch | Make duplicate and out-of-order inputs observable | Policy epoch must increase strictly; reject replay |
 | Local transmit time and deadline | Support queue/deadline accounting | Deadline must be internally valid and interpreted with clock uncertainty |
 | CRC-32C | Detect accidental byte corruption | Verify over frame bytes 0–51 with integrity fields zeroed before publishing |
-| Authentication tag | Authenticate command origin and verify payload integrity | ChaCha20-Poly1305 AEAD (RFC 8439): 12-byte nonce (`run_id` + `policy_epoch`), 256-bit PSK in NVS, covers header bytes 0–51 as AAD. Nonce tuple must never repeat under the same key. |
+| Authentication tag | Authenticate command origin and verify payload integrity | ChaCha20-Poly1305 (RFC 8439) over AAD (header bytes 0–51 \|\| policy payload); 12-byte nonce (`run_id` + `policy_epoch`), 256-bit PSK in NVS. Nonce tuple must never repeat under the same key. |
 | TTL | Ensures an old optimization cannot persist indefinitely | Reject zero, expired, and implausibly long TTL values |
 
 ## Control Profile Contract

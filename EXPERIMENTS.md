@@ -26,11 +26,16 @@ $$
 
 - **Null Hypothesis ($H_0$):** Cross-layer features do not improve held-out prediction accuracy beyond the predeclared engineering relevance threshold of 15% ($H_0: \Delta \le 0.15$).
 - **Alternative Hypothesis ($H_1$):** Cross-layer features achieve a meaningful reduction in held-out relative P95 error exceeding the threshold ($H_1: \Delta > 0.15$).
+- **Decision Rule:** Reject $H_0$ if and only if the one-sided 95% lower confidence bound for $\Delta$ exceeds 0.15:
+  $$\text{LCB}_{95\%}(\Delta) > 0.15$$
 
-Failing to reject $H_0$ constitutes an admissible negative finding; it establishes that the experiment did not observe an improvement exceeding the predeclared 15% threshold under the tested conditions.
+**Uncertainty Estimation and Decision Outcomes:**
+Independent physical **runs** (with randomized treatment order and distinct boot cycles) serve as the primary experimental unit for between-condition comparisons. For intra-run time series, paired prediction errors from identical held-out horizons are resampled using a **block bootstrap** (1,000 resamples), with block length determined by empirical residual autocorrelation decay, to construct the empirical bootstrap distribution and one-sided lower confidence bound for $\Delta$. The analysis distinguishes three outcomes:
+1. $\text{LCB}_{95\%}(\Delta) > 0.15$: Evidence supports held-out improvement exceeding the 15% engineering relevance threshold under the tested conditions.
+2. $\hat{\Delta} > 0.15$ but $\text{LCB}_{95\%}(\Delta) \le 0.15$: The observed point improvement exceeds the threshold, but the experiment does not establish that improvement with the required 95% confidence.
+3. $\hat{\Delta} \le 0.15$: The observed improvement does not reach the engineering relevance threshold.
 
-**Experimental Units and Uncertainty Estimation:**
-Independent physical **runs** (with randomized treatment order and distinct boot cycles) serve as the primary experimental unit for between-condition comparisons. For time-series uncertainty estimation within a continuous run, consecutive observation windows exhibit temporal autocorrelation; standard IID resampling is invalid. Scored horizons are resampled using a **block bootstrap** (1,000 resamples), with block length determined by the empirical autocorrelation decay of prediction residuals, to construct 95% confidence intervals on P95 error and interval coverage.
+Failing to reject $H_0$ does not constitute proof of no benefit or model equivalence; it establishes that the experiment did not observe an improvement exceeding the threshold with the required statistical confidence. Conversely, rejecting $H_0$ applies strictly to the tested physical topology, radio environment, and model revision, not as a claim of universal system superiority.
 
 ### Primary Question: Does Fidelity-Gated Control Fail Safely?
 
