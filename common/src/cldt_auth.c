@@ -20,11 +20,18 @@ cldt_status_t cldt_auth_init(cldt_auth_context_t *ctx) {
 }
 
 cldt_status_t cldt_auth_load_key(cldt_auth_context_t *ctx, const uint8_t key[CLDT_AUTH_KEY_BYTES]) {
+    (void)ctx;
+    (void)key;
+
     // TODO: implement key loading logic
     return CLDT_ERR_NOT_IMPLEMENTED;
 }
 
 void cldt_auth_build_nonce(cldt_run_id_t run_id, cldt_policy_epoch_t epoch, uint8_t nonce[CLDT_AUTH_NONCE_BYTES]) {
+    (void)run_id;
+    (void)epoch;
+    (void)nonce;
+
     // TODO: Nonce construction: run_id 8 bytes big-endian at nonce[0..7], epoch 4 bytes big-endian at nonce[8..11]
 }
 
@@ -38,6 +45,15 @@ cldt_status_t cldt_auth_sign(
     size_t payload_len,
     uint8_t tag[CLDT_AUTH_TAG_BYTES])
 {
+    (void)ctx;
+    (void)run_id;
+    (void)epoch;
+    (void)aad;
+    (void)aad_len;
+    (void)payload;
+    (void)payload_len;
+    (void)tag;
+
     // TODO: Sign flow: mbedtls_chachapoly_context ctx; mbedtls_chachapoly_init(&ctx); mbedtls_chachapoly_setkey(&ctx, key); mbedtls_chachapoly_encrypt_and_tag(&ctx, payload_len, nonce, aad, aad_len, payload, ciphertext_out, tag); mbedtls_chachapoly_free(&ctx)
     // TODO: Context is ~512 bytes, safe on stack, no heap allocation needed
     // TODO: Alternative: AES-128-GCM via mbedtls_gcm_crypt_and_tag is hardware-accelerated on both ESP32-S3 and C6
@@ -54,6 +70,15 @@ cldt_status_t cldt_auth_verify(
     size_t payload_len,
     const uint8_t tag[CLDT_AUTH_TAG_BYTES])
 {
+    (void)ctx;
+    (void)run_id;
+    (void)epoch;
+    (void)aad;
+    (void)aad_len;
+    (void)payload;
+    (void)payload_len;
+    (void)tag;
+
     // TODO: Verify flow: mbedtls_chachapoly_auth_decrypt returns 0 on success, MBEDTLS_ERR_CHACHAPOLY_BAD_STATE on tag mismatch -> map to CLDT_ERR_AUTHENTICATION
     // TODO: RFC 8439 Section 2.8.2 test vectors: Key=808182...9e9f, Nonce=07000000...4647, Tag=1ae10b594f09e26a7e902ecbd0600691
     return CLDT_ERR_NOT_IMPLEMENTED;
@@ -65,13 +90,22 @@ static cldt_status_t auth_calculate_tag_wrapper(
     size_t byte_count,
     uint8_t output_tag[CLDT_AUTH_TAG_BYTES])
 {
+    (void)context;
+    (void)bytes;
+    (void)byte_count;
+    (void)output_tag;
+
     // TODO: Callback wrapper: extract run_id from wire bytes at CLDT_WIRE_RUN_ID_OFFSET (24), epoch at CLDT_WIRE_POLICY_EPOCH_OFFSET (20), both in network byte order
     return CLDT_ERR_NOT_IMPLEMENTED;
 }
 
 cldt_authenticator_t cldt_auth_as_authenticator(cldt_auth_context_t *ctx) {
+    (void)ctx;
+
     cldt_authenticator_t auth;
     memset(&auth, 0, sizeof(auth));
+    auth.calculate_tag = auth_calculate_tag_wrapper;
+    auth.context = ctx;
     // TODO: set calculate_tag callback to auth_calculate_tag_wrapper and context to ctx
     return auth;
 }

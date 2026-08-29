@@ -20,6 +20,12 @@ cldt_status_t cldt_kalman_init(cldt_kalman_t *kf) {
 cldt_status_t cldt_kalman_set_model(cldt_kalman_t *kf, const float F[5][5], const float H[5][5], const float Q[5][5], const float R[5][5]) {
     if (!kf || !F || !H || !Q || !R) return CLDT_ERR_INVALID_ARGUMENT;
 
+    (void)kf;
+    (void)F;
+    (void)H;
+    (void)Q;
+    (void)R;
+
     // TODO: Q tuning: run pilot data with static network, compute empirical variance of prediction residuals
     // TODO: R tuning: collect readings while state is forced static, calculate empirical variance
     
@@ -28,6 +34,8 @@ cldt_status_t cldt_kalman_set_model(cldt_kalman_t *kf, const float F[5][5], cons
 
 cldt_status_t cldt_kalman_predict(cldt_kalman_t *kf) {
     if (!kf || !kf->initialized) return CLDT_ERR_WRONG_STATE;
+
+    (void)kf;
 
     // TODO: Exact Kalman equations: x_pred = F*x, P_pred = F*P*F^T + Q
     // TODO: Computational cost: ~1000 FLOPs per update cycle, trivial for ESP32-S3 FPU
@@ -38,6 +46,9 @@ cldt_status_t cldt_kalman_predict(cldt_kalman_t *kf) {
 cldt_status_t cldt_kalman_update(cldt_kalman_t *kf, const float z[5]) {
     if (!kf || !kf->initialized || !z) return CLDT_ERR_WRONG_STATE;
 
+    (void)kf;
+    (void)z;
+
     // TODO: Exact Kalman equations: y = z - H*x, S = H*P*H^T + R, K = P*H^T*S^{-1}, x = x + K*y, P = (I-K*H)*P
 
     return CLDT_ERR_NOT_IMPLEMENTED;
@@ -46,6 +57,9 @@ cldt_status_t cldt_kalman_update(cldt_kalman_t *kf, const float z[5]) {
 float cldt_kalman_state_uncertainty(const cldt_kalman_t *kf, int state_index) {
     if (!kf || state_index < 0 || state_index >= 5) return -1.0f;
     
+    (void)kf;
+    (void)state_index;
+
     // TODO: P diagonal gives per-state uncertainty: P[2][2] = critical_pdr variance for fidelity gate
 
     return -1.0f;

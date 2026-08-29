@@ -10,6 +10,9 @@ cldt_status_t cldt_fidelity_gate_init(
         return CLDT_ERR_INVALID_ARGUMENT;
     }
 
+    (void)limits;
+    (void)now_host_us;
+
     gate->state = CLDT_GATE_COLD;
     gate->reason = CLDT_GATE_REASON_TOO_FEW_SAMPLES;
     
@@ -23,6 +26,12 @@ cldt_status_t cldt_fidelity_gate_evaluate(
     uint64_t now_host_us,
     bool *actuation_allowed)
 {
+    (void)gate;
+    (void)limits;
+    (void)sample;
+    (void)now_host_us;
+    (void)actuation_allowed;
+
     // TODO: 4 states: COLD, OBSERVE, TRUSTED, ABSTAIN
     // TODO: COLD -> OBSERVE: first passing sample
     // TODO: OBSERVE -> TRUSTED: consecutive_passing_windows >= limits->passing_windows_to_trust
@@ -46,6 +55,9 @@ void cldt_fidelity_gate_invalidate(
     if (!gate) {
         return;
     }
+
+    (void)reason;
+    (void)now_host_us;
     
     // TODO: Invalidate: reset to COLD, clear consecutive_passing_windows, timestamp transition
 }
