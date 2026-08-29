@@ -1,4 +1,4 @@
-# Contributing
+# CONTRIBUTING
 
 This repository is a research scaffold for a hardware-in-the-loop digital twin study. Contributions are welcome when they respect the evidence-first discipline described below.
 

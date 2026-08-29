@@ -1,4 +1,4 @@
-# Security Policy
+# SECURITY POLICY
 
 ## Scope
 
@@ -15,7 +15,7 @@ The project plans to use a maintained platform cryptographic primitive for comma
 If you find a security issue in this repository:
 
 1. **Do not open a public issue.**
-2. Email `reinathanajah@gmail.com` with a description of the vulnerability, affected files, and reproduction steps.
+2. Email `reinathankurniawan@gmail.com` with a description of the vulnerability, affected files, and reproduction steps.
 3. Allow up to 7 days for an initial response.
 
 This project does not have a bug bounty program.

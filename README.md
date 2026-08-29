@@ -1,4 +1,4 @@
-# Fidelity-Gated Cross-Layer Digital Twin for Thread IoT
+# FIDELITY-GATED CROSS-LAYER DIGITAL TWIN FOR THREAD IOT
 
 This repository is the implementation scaffold for a low-cost, hardware-in-the-loop study of deadline-aware IoT traffic. Its physical system is a small Thread mesh built from ESP32 boards; its host system records evidence, estimates a model, scores the model against reality, and may propose a strictly bounded traffic policy. A proposal is applied only when the host-side fidelity gate, the gateway’s local guard, and endpoint-side validation all agree that it is fresh, attributable, and within local limits.
 

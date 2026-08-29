@@ -1,4 +1,4 @@
-# System Design
+# SYSTEM DESIGN
 
 ## Design Intent And Boundaries
 
