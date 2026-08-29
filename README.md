@@ -100,7 +100,7 @@ All controlled disturbances are application-level and limited to workload timing
 
 ## Budget And Prerequisites
 
-The baseline purchase ceiling is **Rp 1,500,000** (with flexibility up to **Rp 1,750,000** for hardware instrumentation reserve). The complete, costed ceiling is kept in [hardware/bom.csv](hardware/bom.csv), dated 29 August 2026. Its allocation covers four ESP32 boards, powered USB hub, cables, INA219 modules, optional BME280 sensor, wiring, and an 8-channel USB logic analyzer (Saleae clone) for UART Spinel protocol decoding and hardware trace verification.
+The baseline purchase ceiling is **Rp 1,500,000** (with flexibility up to **Rp 1,750,000** for hardware instrumentation reserve). The complete, costed ceiling is kept in [hardware/BOM.md](hardware/BOM.md), dated 29 August 2026. Its allocation covers four ESP32 boards, powered USB hub, cables, INA219 modules, optional BME280 sensor, wiring, and an 8-channel USB logic analyzer (Saleae clone) for UART Spinel protocol decoding and hardware trace verification.
 
 | Budget Decision | Rationale |
 |---|---|
@@ -125,7 +125,7 @@ An existing laptop and an existing private 2.4 GHz Wi-Fi access point are prereq
 | [experiments/authoring/](experiments/authoring/) | Matching JSONC authoring companions with line comments and operator-focused completion guidance |
 | [schemas/](schemas/) | JSON Schema for the template-to-ready lifecycle; this is machine-facing and remains strict JSON |
 | [tests/](tests/) | Intentionally skipped C test skeletons that define the required verification surface |
-| [hardware/bom.csv](hardware/bom.csv) | Itemized cost ceiling, assumptions, vendor links, and date checked |
+| [hardware/BOM.md](hardware/BOM.md) | Itemized cost ceiling, specifications, vendor links, pinout mappings, and power budget |
 
 There are intentionally only three primary public Markdown documents. This README sets scope and presentation; [DESIGN.md](DESIGN.md) defines ownership, data flow, and implementation boundaries; [EXPERIMENTS.md](EXPERIMENTS.md) defines how a future claim becomes admissible evidence. Supporting documents include [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Keeping them separate makes it much easier for a reviewer to distinguish intent, engineering design, and experimental proof.
 
