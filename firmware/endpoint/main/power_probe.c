@@ -32,94 +32,37 @@ esp_err_t cldt_power_probe_init(const cldt_power_probe_config_t* config) {
     
     s_config = *config;
     
-    i2c_master_bus_config_t i2c_mst_config = {
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .i2c_port = I2C_NUM_0,
-        .scl_io_num = I2C_MASTER_SCL_IO,
-        .sda_io_num = I2C_MASTER_SDA_IO,
-        .glitch_ignore_cnt = 7,
-        .flags.enable_internal_pullup = true,
-    };
+    // TODO: I2C bus init: i2c_master_bus_config_t with .sda_io_num=GPIO_NUM_6, .scl_io_num=GPIO_NUM_7, .clk_source=I2C_CLK_SRC_DEFAULT, .glitch_ignore_cnt=7, .flags.enable_internal_pullup=true
+    // TODO: i2c_new_master_bus(&config, &s_bus_handle)
+    // TODO: Device registration: i2c_device_config_t with .device_address=config->i2c_address, .scl_speed_hz=400000, i2c_master_bus_add_device(bus, &dev_cfg, &s_ina219_dev)
+    // TODO: INA219 calibration register (0x05): Cal = trunc(0.04096 / (Current_LSB * R_shunt)). For 0.1 ohm shunt with Current_LSB=0.0001A: Cal=4096
+    // TODO: INA219 config register (0x00): set bus voltage range, PGA gain, ADC resolution (12-bit = 532us conversion), continuous mode
+    // TODO: High-side sensing: VIN+ to power source, VIN- to ESP32-C6 VCC, shared GND
+    // TODO: I2C address: default 0x40, configurable via A0/A1 pins (0x40-0x45)
+    // TODO: Available component: idf.py add-dependency "esp-idf-lib/ina219^1.0.7"
     
-    esp_err_t ret = i2c_new_master_bus(&i2c_mst_config, &s_bus_handle);
-    if (ret != ESP_OK) {
-        return ret;
-    }
-    
-    i2c_device_config_t dev_cfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = s_config.i2c_address,
-        .scl_speed_hz = I2C_MASTER_FREQ_HZ,
-    };
-    
-    ret = i2c_master_bus_add_device(s_bus_handle, &dev_cfg, &s_ina219_dev);
-    if (ret != ESP_OK) {
-        return ret;
-    }
-
-    // TODO: Write INA219 calibration register (reg 0x05)
-    // TODO: Set configuration register (reg 0x00)
-
-    s_accumulated_energy_uj = 0;
-    s_prev_sample_us = esp_timer_get_time();
-    s_initialized = true;
-
-    return ESP_OK;
+    return ESP_ERR_NOT_SUPPORTED;
 }
 
 esp_err_t cldt_power_probe_sample(cldt_power_sample_t* output) {
-    if (!s_initialized || output == NULL) {
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    uint8_t reg_addr;
-    uint8_t data[2];
+    // TODO: Sample read: write 1-byte register address, read 2 bytes big-endian via i2c_master_transmit_receive(dev, &reg, 1, data, 2, timeout_ms)
+    // TODO: Bus voltage (reg 0x02): raw value, bits[15:3] contain voltage, LSB = 4mV. Shift right by 3, multiply by 4000 for microvolts.
+    // TODO: Current (reg 0x04): signed 16-bit, multiply by Current_LSB for amps
+    // TODO: Saturation check: if raw current equals ±32767, the measurement is saturated
+    // TODO: Power = voltage_uv * current_ua / 1000000 (in microwatts)
+    // TODO: Energy integration: delta_us = esp_timer_get_time() - s_prev_sample_us, energy_uj += power_uw * delta_us / 1000000
+    // TODO: Primary metric: energy per successfully delivered critical item (uJ/item)
+    // TODO: ESP32-C6 typical: ~17mA active, ~180uA light sleep, ~7uA deep sleep, ~100mA+ Thread TX burst
     
-    reg_addr = INA219_REG_BUS_VOLTAGE;
-    esp_err_t ret = i2c_master_transmit_receive(s_ina219_dev, &reg_addr, 1, data, 2, -1);
-    if (ret != ESP_OK) return ret;
-    int16_t bus_voltage_raw = (data[0] << 8) | data[1];
-    
-    reg_addr = INA219_REG_CURRENT;
-    ret = i2c_master_transmit_receive(s_ina219_dev, &reg_addr, 1, data, 2, -1);
-    if (ret != ESP_OK) return ret;
-    int16_t current_raw = (data[0] << 8) | data[1];
-
-    // TODO: Application of conversion factors for bus_voltage_uv and current_ua
-    // TODO: Saturation checks
-    // TODO: Error trace events
-    
-    int32_t bus_voltage_uv = bus_voltage_raw * 4000; 
-    int32_t current_ua = current_raw * 100;
-    
-    int64_t power_uw = ((int64_t)bus_voltage_uv * current_ua) / 1000000;
-    
-    uint64_t now = esp_timer_get_time();
-    uint64_t delta_us = now - s_prev_sample_us;
-    s_accumulated_energy_uj += (power_uw * delta_us) / 1000000;
-    
-    output->local_time_us = now;
-    output->bus_voltage_uv = bus_voltage_uv;
-    output->current_ua = current_ua;
-    output->power_uw = power_uw;
-    output->accumulated_energy_uj = s_accumulated_energy_uj;
-    output->calibration_id = s_config.calibration_id;
-    output->valid = true;
-    
-    s_prev_sample_us = now;
-    
-    return ESP_OK;
+    return ESP_ERR_NOT_SUPPORTED;
 }
 
 esp_err_t cldt_power_probe_reset_energy(uint64_t run_start_us) {
-    s_accumulated_energy_uj = 0;
-    s_prev_sample_us = run_start_us;
-    return ESP_OK;
+    // TODO: reset energy counter
+    return ESP_ERR_NOT_SUPPORTED;
 }
 
 esp_err_t cldt_power_probe_stop(void) {
-    s_initialized = false;
-    // TODO: Read final sample
-    // TODO: Release I2C resource
-    return ESP_OK;
+    // TODO: clean up and stop
+    return ESP_ERR_NOT_SUPPORTED;
 }

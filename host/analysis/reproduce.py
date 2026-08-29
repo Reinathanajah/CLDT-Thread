@@ -3,57 +3,30 @@ import json
 import csv
 from pathlib import Path
 
-# TODO: import numpy as np
-# TODO: import scipy.stats as stats
-# TODO: import matplotlib.pyplot as plt
-
-def load_manifest(results_dir):
-    manifest_path = results_dir / "manifest.json"
-    with open(manifest_path, "r") as f:
-        return json.load(f)
-
-def load_events(results_dir):
-    events_path = results_dir / "events.csv"
-    events = []
-    with open(events_path, "r") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            events.append(row)
-    return events
-
 def main():
     if len(sys.argv) != 2:
         print("Usage: python reproduce.py <results_dir>")
         sys.exit(1)
         
-    results_dir = Path(sys.argv[1])
+    # TODO: load manifest JSON from results_dir / "manifest.json"
+    # TODO: verify manifest has state="ready" and all _todo items resolved
+    # TODO: compute SHA-256 digest of manifest and compare against results_dir / "manifest.sha256"
+    # TODO: load raw event stream from results_dir / "events.csv" using csv.DictReader
+    # TODO: group events by (run_id, node_id, boot_id, sequence) for per-item lifecycle audit
+    # TODO: for each lifecycle group, verify exactly one release event and one terminal event (ack/expire/drop)
+    # TODO: count duplicate_releases, duplicate_terminals, terminal_without_release, unresolved_items
+    # TODO: fit network-only model: features = [delivery_outcome, link_rssi, traffic_load]
+    # TODO: fit cross-layer model: features = [delivery_outcome, link_rssi, traffic_load, mac_tx_retry_delta, mac_cca_fail_delta, queue_depth_hw, parent_link_quality_in, edf_preemptive_expiry_count]
+    # TODO: split data into calibration block (first 60%) and held-out block (last 40%)
+    # TODO: score both models on held-out block: relative P95 error on deadline delivery ratio
+    # TODO: compute 95% confidence intervals via bootstrap (1000 resamples)
+    # TODO: compute prediction interval coverage: fraction of observations within predicted +/- 2 sigma
+    # TODO: generate gate characterization plot: gate_state vs time, overlay Kalman P[2][2]
+    # TODO: output primary metric table as CSV: model_name, p95_error, ci_lower, ci_upper, coverage
+    # TODO: exit nonzero if reconciliation fails (any lifecycle inconsistency)
+    # TODO: use numpy for statistics, matplotlib for plots, scipy.stats for bootstrap
     
-    print(f"Loading data from {results_dir}...")
-    manifest = load_manifest(results_dir)
-    events = load_events(results_dir)
-    
-    # Audit skeleton
-    grouped_events = {}
-    for ev in events:
-        run_id = ev.get("run_id")
-        node_id = ev.get("node_id")
-        boot_id = ev.get("boot_id")
-        seq = ev.get("sequence")
-        
-        key = (run_id, node_id, boot_id, seq)
-        if key not in grouped_events:
-            grouped_events[key] = []
-        grouped_events[key].append(ev)
-        
-    # TODO: Implement model fitting
-    # TODO: Implement scoring
-    # TODO: Calculate confidence intervals
-    # TODO: Generate gate characterization plot
-    
-    print("\nSummary Table:")
-    print(f"Total events processed: {len(events)}")
-    print(f"Unique lifecycles tracked: {len(grouped_events)}")
-    # TODO: print advanced statistics
+    return
 
 if __name__ == "__main__":
     main()

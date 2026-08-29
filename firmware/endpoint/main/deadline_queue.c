@@ -32,17 +32,10 @@ cldt_status_t cldt_deadline_queue_acquire(
         return CLDT_ERR_INVALID_ARGUMENT;
     }
 
-    for (uint16_t i = 0; i < queue->capacity; i++) {
-        if (queue->slots[i].state == CLDT_SLOT_FREE) {
-            queue->slots[i].state = CLDT_SLOT_PRODUCER_OWNED;
-            *slot = &queue->slots[i];
-            return CLDT_OK;
-        }
-    }
+    // TODO: Acquire: linear scan slots[0..capacity-1] for CLDT_SLOT_FREE, transition to PRODUCER_OWNED
+    // TODO: Capacity reservation: reserve N slots for CLDT_TRAFFIC_CONTROL and CLDT_TRAFFIC_CRITICAL classes
 
-    queue->pool_exhaustions++;
-    *slot = NULL;
-    return CLDT_ERR_NO_SPACE;
+    return CLDT_ERR_NOT_IMPLEMENTED;
 }
 
 cldt_status_t cldt_deadline_queue_commit(
@@ -54,55 +47,14 @@ cldt_status_t cldt_deadline_queue_commit(
         return CLDT_ERR_INVALID_ARGUMENT;
     }
 
-    if (slot->state != CLDT_SLOT_PRODUCER_OWNED) {
-        return CLDT_ERR_WRONG_STATE;
-    }
+    // TODO: Commit: validate PRODUCER_OWNED state, check already-expired, binary search insert into order[], update high_water
+    // TODO: The EXACT algorithm (EDF = Earliest Deadline First, sorted by deadline_local_us)
+    // TODO: Binary search: compare deadline_local_us in order[] array, find insertion point, memmove to shift
+    // TODO: Liu & Layland (1973): EDF is optimal for uniprocessor if utilization U = sum(Ci/Ti) <= 1
+    // TODO: Admission control: when queue is full, reject the item with the LATEST deadline (either incoming or last in queue)
+    // TODO: Coalescing: for CLDT_TRAFFIC_TELEMETRY, if a queued item has same source node, replace the older one
 
-    if (slot->meta.deadline_local_us <= now_local_us) {
-        queue->rejected++;
-        slot->state = CLDT_SLOT_FREE;
-        return CLDT_ERR_EXPIRED;
-    }
-
-    // TODO: Reserve capacity by traffic class
-    // TODO: Coalesce logic with existing queued messages
-    // TODO: Telemetry deduplication
-
-    if (queue->queued >= queue->capacity) {
-        queue->rejected++;
-        slot->state = CLDT_SLOT_FREE;
-        return CLDT_ERR_NO_SPACE;
-    }
-
-    uint16_t slot_idx = slot - queue->slots;
-    uint16_t insert_idx = queue->queued;
-
-    // Binary search for deadline_local_us to find insertion point (EDF)
-    int16_t left = 0;
-    int16_t right = queue->queued - 1;
-    while (left <= right) {
-        int16_t mid = left + (right - left) / 2;
-        if (queue->slots[queue->order[mid]].meta.deadline_local_us > slot->meta.deadline_local_us) {
-            right = mid - 1;
-        } else {
-            left = mid + 1;
-        }
-    }
-    insert_idx = left;
-
-    // Shift elements to make space
-    for (int16_t i = queue->queued - 1; i >= (int16_t)insert_idx; i--) {
-        queue->order[i + 1] = queue->order[i];
-    }
-
-    queue->order[insert_idx] = slot_idx;
-    queue->queued++;
-    if (queue->queued > queue->high_water) {
-        queue->high_water = queue->queued;
-    }
-
-    slot->state = CLDT_SLOT_QUEUED;
-    return CLDT_OK;
+    return CLDT_ERR_NOT_IMPLEMENTED;
 }
 
 cldt_status_t cldt_deadline_queue_pop(
@@ -114,28 +66,9 @@ cldt_status_t cldt_deadline_queue_pop(
         return CLDT_ERR_INVALID_ARGUMENT;
     }
 
-    // TODO: Pre-pop expiry sweep
+    // TODO: Pop: always take order[0] (earliest deadline), shift array left, transition to TRANSPORT_OWNED
 
-    if (queue->queued == 0) {
-        *slot = NULL;
-        return CLDT_ERR_NOT_READY;
-    }
-
-    // Basic earliest-deadline pop (first element in order array)
-    uint16_t pop_idx = queue->order[0];
-
-    // TODO: Advanced tie-breaking between equal deadlines
-
-    *slot = &queue->slots[pop_idx];
-
-    for (uint16_t i = 0; i < queue->queued - 1; i++) {
-        queue->order[i] = queue->order[i + 1];
-    }
-
-    queue->queued--;
-    (*slot)->state = CLDT_SLOT_TRANSPORT_OWNED;
-
-    return CLDT_OK;
+    return CLDT_ERR_NOT_IMPLEMENTED;
 }
 
 cldt_status_t cldt_deadline_queue_release(
@@ -146,10 +79,9 @@ cldt_status_t cldt_deadline_queue_release(
         return CLDT_ERR_INVALID_ARGUMENT;
     }
 
-    // TODO: Clear slot metadata completely to prevent leakage
+    // TODO: Release: require PRODUCER_OWNED or TRANSPORT_OWNED, clear metadata bytes to prevent info leakage, transition to FREE
 
-    slot->state = CLDT_SLOT_FREE;
-    return CLDT_OK;
+    return CLDT_ERR_NOT_IMPLEMENTED;
 }
 
 cldt_status_t cldt_deadline_queue_expire(
@@ -161,22 +93,8 @@ cldt_status_t cldt_deadline_queue_expire(
         return CLDT_ERR_INVALID_ARGUMENT;
     }
 
-    uint16_t expired_count = 0;
-    uint16_t write_idx = 0;
+    // TODO: Expiry sweep: traverse order[] once, remove items where deadline_local_us <= now_local_us, compact survivors without changing relative order
+    // TODO: esp_timer for periodic sweep: create with esp_timer_create_args_t, start with esp_timer_start_periodic(timer, 10000) for 10ms
 
-    for (uint16_t i = 0; i < queue->queued; i++) {
-        uint16_t slot_idx = queue->order[i];
-        if (queue->slots[slot_idx].meta.deadline_local_us <= now_local_us) {
-            queue->slots[slot_idx].state = CLDT_SLOT_FREE;
-            expired_count++;
-            queue->expired++;
-        } else {
-            queue->order[write_idx++] = slot_idx;
-        }
-    }
-
-    queue->queued = write_idx;
-    *expired_slots = expired_count;
-
-    return CLDT_OK;
+    return CLDT_ERR_NOT_IMPLEMENTED;
 }
