@@ -19,6 +19,7 @@ typedef enum {
     CLDT_GATE_REASON_RESIDUAL,
     CLDT_GATE_REASON_COVERAGE,
     CLDT_GATE_REASON_CLOCK_UNCERTAINTY,
+    CLDT_GATE_REASON_OBSERVATION_INTEGRITY,
     CLDT_GATE_REASON_OUT_OF_REGION,
     CLDT_GATE_REASON_MODEL_CHANGED
 } cldt_gate_reason_t;
@@ -39,6 +40,8 @@ typedef struct {
     /* The gate owns trust state only; it never creates, serializes, or applies policy. */
     cldt_gate_state_t state;
     cldt_gate_reason_t reason;
+    cldt_model_variant_t bound_model_variant;
+    uint64_t bound_model_revision;
     uint16_t consecutive_passing_windows;
     uint64_t state_entered_host_us;
     uint64_t transitions;
@@ -52,6 +55,8 @@ typedef struct {
 cldt_status_t cldt_fidelity_gate_init(
     cldt_fidelity_gate_t *gate,
     const cldt_fidelity_limits_t *limits,
+    cldt_model_variant_t model_variant,
+    uint64_t model_revision,
     uint64_t now_host_us);
 
 /*

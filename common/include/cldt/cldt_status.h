@@ -42,6 +42,8 @@ typedef enum {
     CLDT_ERR_STALE = -13,
     /* A well-formed frame belongs to a run other than the active run. */
     CLDT_ERR_WRONG_RUN = -14,
+    /* Command coordinator identity differs from the commissioned authority. */
+    CLDT_ERR_WRONG_AUTHORITY = -15,
     /* Intentional scaffold marker; it is never a valid experiment outcome. */
     CLDT_ERR_NOT_IMPLEMENTED = -127
 } cldt_status_t;

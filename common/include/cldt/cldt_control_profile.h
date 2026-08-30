@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "cldt/cldt_status.h"
+#include "cldt/cldt_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +28,8 @@ typedef struct {
      */
     char profile_id[CLDT_CONTROL_PROFILE_ID_BYTES];
     char calibration_id[CLDT_CONTROL_PROFILE_ID_BYTES];
+    /* Version one permits actuation only from the frozen cross-layer candidate. */
+    cldt_model_variant_t actuation_model_variant;
 
     /*
      * resolved_digest is the digest of the canonical, fully resolved profile

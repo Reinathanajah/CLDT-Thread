@@ -107,6 +107,9 @@ cldt_status_t cldt_protocol_decode(
 /*
  * Applies freshness and ordering checks after successful decoding. Times are
  * in the gateway monotonic domain; uncertainty expands the rejection margin.
+ * On an endpoint, applied_epoch must be the RAM mirror of a valid durable
+ * replay record. The caller still owns issuer validation, durable advancement,
+ * local limits, and atomic policy publication.
  */
 cldt_status_t cldt_protocol_validate_command(
     const cldt_frame_view_t *frame,

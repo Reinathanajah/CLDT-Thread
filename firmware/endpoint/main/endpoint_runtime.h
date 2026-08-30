@@ -35,7 +35,9 @@ typedef struct {
     cldt_node_id_t node_id;
     cldt_node_role_t role;
     cldt_endpoint_state_t state;
+    /* RAM mirrors loaded from an integrity-checked durable replay record. */
     cldt_run_id_t active_run_id;
+    cldt_boot_id_t command_authority_boot_id;
     cldt_boot_id_t boot_id;
     cldt_sequence_t next_sequence;
     cldt_policy_epoch_t applied_epoch;
@@ -50,13 +52,15 @@ typedef struct {
     TaskHandle_t transmitter_task;
     TaskHandle_t trace_task;
     TaskHandle_t power_task;
+    /* False forbids remote apply and keeps the compiled safe policy active. */
+    bool replay_state_valid;
     bool started;
 } cldt_endpoint_runtime_t;
 
 esp_err_t cldt_endpoint_runtime_init(cldt_endpoint_runtime_t *runtime);
 esp_err_t cldt_endpoint_runtime_start(cldt_endpoint_runtime_t *runtime);
 
-/* Validates run, authentication, epoch, TTL, and local limits before apply. */
+/* Validates coordinator identity, run, durable epoch, TTL, and local limits. */
 esp_err_t cldt_endpoint_runtime_receive_command(
     cldt_endpoint_runtime_t *runtime,
     const uint8_t *datagram,

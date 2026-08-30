@@ -39,10 +39,18 @@ config CLDT_GATEWAY_MAX_POLICY_TTL_MS
         Longest acceptable remote-policy lifetime. A control_profile may request
         a shorter TTL but cannot extend a command beyond this local bound.
 
+config CLDT_GATEWAY_REMOTE_ACTUATION
+    bool "Compile candidate remote-actuation path"
+    default n
+    help
+        Keep disabled during testbed and shadow-model work. Enabling this switch
+        does not bypass ready-manifest, authentication, run/epoch, TTL, local
+        health, edge-limit, fallback, or endpoint validation requirements.
+
 config CLDT_GATEWAY_RCP_UART_RX_GPIO
     int "RCP UART receive GPIO"
     range 0 48
-    default 4
+    default 18
     help
         Gateway receive pin connected to the RCP transmit pin. Verify crossover,
         voltage compatibility, and the selected RCP UART configuration together.
@@ -50,25 +58,25 @@ config CLDT_GATEWAY_RCP_UART_RX_GPIO
 config CLDT_GATEWAY_RCP_UART_TX_GPIO
     int "RCP UART transmit GPIO"
     range 0 48
-    default 5
+    default 17
     help
         Gateway transmit pin connected to the RCP receive pin. Record final
         wiring, baud rate, and reset behavior in the upstream bring-up evidence.
 
 config CLDT_GATEWAY_RCP_RESET_GPIO
     int "RCP reset GPIO"
-    range 0 48
-    default 7
+    range -1 48
+    default -1
     help
-        Optional RCP reset control. Confirm board-specific boot/reset circuitry
-        before driving this pin; an incorrect default can prevent normal startup.
+        -1 leaves optional RCP reset control disabled. Select a free S3 GPIO only
+        after the C6 EN electrical behavior and wiring have been verified.
 
 config CLDT_GATEWAY_RCP_BOOT_GPIO
     int "RCP boot GPIO"
-    range 0 48
-    default 8
+    range -1 48
+    default -1
     help
-        Optional RCP boot-mode control. Treat this as board wiring, not a generic
-        ESP32 pin assignment, and validate it before automated flashing or reset.
+        -1 leaves optional RCP boot-mode control disabled. Treat any enabled
+        value as board-specific wiring and validate it before automated reset.
 
 endmenu

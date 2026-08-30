@@ -26,8 +26,9 @@ typedef struct {
     cldt_control_profile_t control_profile;
     cldt_broker_io_t broker;
     cldt_run_recorder_t recorder;
-    cldt_twin_model_t twin;
-    cldt_estimator_t estimator;
+    /* One frozen instance and estimator per declared comparison variant. */
+    cldt_twin_model_t models[CLDT_MODEL_VARIANT_COUNT];
+    cldt_estimator_t estimators[CLDT_MODEL_VARIANT_COUNT];
     cldt_fidelity_gate_t gate;
     cldt_policy_t active_policy;
     uint64_t started_host_us;

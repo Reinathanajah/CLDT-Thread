@@ -16,6 +16,7 @@ extern "C" {
 #define CLDT_AUTH_TAG_BYTES 16U
 #define CLDT_TRACE_DETAIL_BYTES 24U
 #define CLDT_POLICY_STREAM_COUNT 4U
+#define CLDT_COMMAND_AUTHORITY_NODE_ID UINT32_C(0)
 
 typedef uint32_t cldt_node_id_t;
 typedef uint64_t cldt_run_id_t;
@@ -77,9 +78,24 @@ typedef enum {
     CLDT_GATE_ABSTAIN
 } cldt_gate_state_t;
 
+typedef enum {
+    CLDT_MODEL_NAIVE = 0,
+    CLDT_MODEL_NETWORK_ONLY,
+    CLDT_MODEL_CROSS_LAYER,
+    CLDT_MODEL_VARIANT_COUNT
+} cldt_model_variant_t;
+
 /*
  * In-memory metadata. It is not a packed wire structure. Encoding and decoding
  * must be performed field by field through cldt_protocol.h.
+ *
+ * Identity is frame-kind specific. For observations, acknowledgements, health,
+ * and trace-bearing frames, node_id/boot_id identify the emitting device. A
+ * version 1 command is one global policy datagram for every endpoint admitted
+ * to the run: node_id is CLDT_COMMAND_AUTHORITY_NODE_ID and boot_id identifies
+ * the host coordinator process that issued it, not a destination. The gateway
+ * guards and forwards those identical bytes. Version 1 does not define
+ * different authenticated command bytes per endpoint.
  */
 typedef struct {
     cldt_frame_kind_t kind;
@@ -146,6 +162,10 @@ typedef struct {
 } cldt_policy_t;
 
 typedef struct {
+    cldt_model_variant_t model_variant;
+    uint64_t model_revision;
+    uint64_t horizon_start_host_us;
+    uint64_t horizon_end_host_us;
     uint64_t evaluated_host_us;
     uint64_t newest_observation_host_us;
     uint32_t sample_count;
@@ -154,6 +174,8 @@ typedef struct {
     double relative_p95_error;
     double pdr_error_points;
     double prediction_interval_coverage;
+    /* False when required horizon evidence is missing, stale, or unreconciled. */
+    bool observation_integrity_valid;
     bool inside_calibrated_region;
 } cldt_fidelity_sample_t;
 

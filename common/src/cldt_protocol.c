@@ -46,9 +46,13 @@ cldt_status_t cldt_protocol_encode(
      *    Write CLDT_WIRE_RESERVED_BYTES as zero. Do not cast output to a packed
      *    C structure: alignment, endianness, and compiler padding would make
      *    the wire contract unstable.
-     * 4. Write CRC and authentication bytes as zero, calculate CRC-32C over
-     *    the whole candidate frame, write the CRC, then calculate the auth tag
-     *    over that CRC-bearing frame with only the tag field zeroed.
+     * 4. Build the canonical integrity sequence by concatenating serialized
+     *    header bytes 0-51 with the payload; the CRC and tag slots are omitted,
+     *    not included as zero bytes. Calculate CRC-32C over that sequence and
+     *    write it at CLDT_WIRE_CRC32C_OFFSET. When authentication is requested,
+     *    supply the same sequence as ChaCha20-Poly1305 AAD with zero plaintext
+     *    and write the resulting tag. Use bounded caller/stack storage or a
+     *    documented scatter/gather helper; no heap allocation belongs here.
      * 5. Write output_bytes only after every validation and authenticator call
      *    succeeds. Add known-answer tests with fixed byte vectors.
      */
@@ -76,10 +80,11 @@ cldt_status_t cldt_protocol_decode(
      * 2. Reject wrong magic, unsupported version, invalid enum values, trailing
      *    bytes, nonzero reserved bytes, and malformed flag combinations before
      *    publishing output_view. Read only through the declared offsets.
-     * 3. Reconstruct the CRC input by treating both integrity fields as zero;
-     *    compare CRC in constant-time where the platform helper permits it.
+     * 3. Reconstruct the canonical integrity sequence (header bytes 0-51
+     *    concatenated with payload), calculate CRC-32C, and compare it with the
+     *    received value before publishing any view.
      * 4. If authentication_required is true, require an authenticator and
-     *    verify the received tag using the documented second byte sequence.
+     *    verify the received tag over that same sequence as zero-plaintext AAD.
      * 5. Populate output_view only on success. Its payload is a borrowed view,
      *    so never copy a pointer into temporary decoder storage.
      */
@@ -107,14 +112,20 @@ cldt_status_t cldt_protocol_validate_command(
      * 2. Require exactly CLDT_POLICY_WIRE_BYTES, decode every field through the
      *    declared policy offsets, require frame.meta.run_id to equal the active
      *    run, require payload epoch to equal frame metadata epoch, and require
-     *    that epoch to be strictly greater than applied_epoch.
-     * 3. Reject a zero or implausibly long TTL. Compare issue time plus TTL to
-     *    now_gateway_us after expanding the expiry margin by time_uncertainty_us.
+     *    that epoch to be strictly greater than applied_epoch. Endpoint callers
+     *    must supply applied_epoch from a valid durable replay record rather
+     *    than resetting it after reboot.
+     * 3. Reject a zero or implausibly long TTL. Overflow-check conversion and
+     *    addition before comparing issue time plus TTL to now_gateway_us after
+     *    expanding the expiry margin by time_uncertainty_us.
      * 4. Return CLDT_ERR_MALFORMED for structural failure, CLDT_ERR_STALE for a
      *    well-formed command outside the accepted freshness window,
      *    CLDT_ERR_WRONG_RUN for another run identity, and CLDT_ERR_EXPIRED for
      *    elapsed TTL. Preserve DUPLICATE and OUT_OF_ORDER for epoch failures.
-     * Test duplicate epochs, time-wrap boundaries, and a command that arrives
+     * This helper does not persist state or apply a policy. The endpoint caller
+     * must durably advance the accepted (run_id, epoch) before publishing the
+     * new policy; failure to persist is a rejection and safe fallback. Test
+     * duplicate epochs, time-wrap boundaries, and a command that arrives
      * exactly at the uncertainty-expanded expiry limit.
      */
     return CLDT_ERR_NOT_IMPLEMENTED;

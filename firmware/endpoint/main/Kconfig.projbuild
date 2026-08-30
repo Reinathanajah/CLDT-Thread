@@ -19,10 +19,11 @@ config CLDT_ENDPOINT_ROUTER
         remains an observed run fact and must not be inferred from this selection.
 
 config CLDT_ENDPOINT_LOW_POWER
-    bool "Low-power end device"
+    bool "Low-power end-device candidate"
     help
-        Selects the endpoint role used by the energy template. It does not itself
-        prove a low-power Thread configuration or an energy saving.
+        Selects a candidate end-device configuration for a later admitted study.
+        Actual Thread role remains observed, and no version-one energy claim is
+        implied by this build choice.
 
 endchoice
 
@@ -44,26 +45,27 @@ config CLDT_ENDPOINT_MAX_TOTAL_RATE_PPS
 
 config CLDT_ENDPOINT_EVENT_GPIO
     int "Local event input GPIO"
-    range 0 30
-    default 9
+    range -1 30
+    default -1
     help
-        GPIO used for the optional local event ISR. Verify board pin capability,
-        pull mode, and debounce behavior before enabling a physical event source.
+        -1 disables the optional physical event input. Select a pin only after
+        checking the exact board revision, boot strapping, pull mode, and debounce
+        behavior; XIAO GPIO9 is a boot input and is not a safe generic default.
 
 config CLDT_ENDPOINT_I2C_SDA_GPIO
-    int "Power-probe I2C SDA GPIO"
+    int "Optional power-probe I2C SDA GPIO"
     range 0 30
-    default 6
+    default 22
     help
-        SDA pin for the optional INA219 path. Replace only after checking the
-        actual board pinout and record the final wiring in the energy evidence.
+        XIAO ESP32-C6 D4/SDA is GPIO22. The version-one power probe is deferred;
+        recheck the exact board and record wiring before a future energy pilot.
 
 config CLDT_ENDPOINT_I2C_SCL_GPIO
-    int "Power-probe I2C SCL GPIO"
+    int "Optional power-probe I2C SCL GPIO"
     range 0 30
-    default 7
+    default 23
     help
-        SCL pin for the optional INA219 path. Do not assume another board's I2C
-        defaults apply to this C6 variant.
+        XIAO ESP32-C6 D5/SCL is GPIO23. Do not assume another C6 board variant
+        shares this mapping.
 
 endmenu

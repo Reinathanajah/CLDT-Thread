@@ -36,6 +36,7 @@ typedef enum {
 typedef enum {
     CLDT_ACTION_NONE = 0,
     CLDT_ACTION_BULK_RATE_REDUCE,
+    /* Reserved for explicitly admitted future phases; rejected by v1 control. */
     CLDT_ACTION_PHASE_STAGGER,
     CLDT_ACTION_POWER_PROFILE
 } cldt_candidate_action_t;
@@ -70,12 +71,16 @@ typedef struct {
 
 typedef struct {
     /*
-     * run_id is generated at launch after the original ready manifest is frozen.
-     * It is not taken from a template file, and it becomes part of every wire
-     * frame and evidence record for that one physical run.
+     * run_id is assigned by the launcher only after parsing and cross-field
+     * validation. It is never taken from a template. Before assignment, the
+     * launcher reserves a nonzero cryptographically generated value in the
+     * durable global run ledger and binds a non-secret command-key identity only
+     * for an actuated run. The parser leaves it zero; the coordinator rejects zero.
      */
     char experiment_id[CLDT_MANIFEST_ID_BYTES];
     cldt_run_id_t run_id;
+    /* Nonzero identity of the launcher process; assigned beside run_id. */
+    cldt_boot_id_t command_authority_boot_id;
     uint32_t seed;
 
     cldt_manifest_node_t nodes[CLDT_MAX_MANIFEST_NODES];
@@ -122,7 +127,8 @@ typedef struct {
  * - validate JSON syntax and schema first;
  * - reject state == "template" before allocating or opening I/O;
  * - copy bounded fields, preserving a precise error path;
- * - calculate canonical_digest and generate run_id only after full validation.
+ * - calculate canonical_digest after full validation and leave run_id plus
+ *   command_authority_boot_id zero for the launcher's separate assignment step.
  *
  * The parser must reject unknown runtime fields, duplicate object keys, secrets,
  * and any null value that a ready manifest is required to replace.

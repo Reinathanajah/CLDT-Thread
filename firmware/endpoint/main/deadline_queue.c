@@ -1,5 +1,7 @@
 #include "deadline_queue.h"
 
+#include <string.h>
+
 cldt_status_t cldt_deadline_queue_init(
     cldt_deadline_queue_t *queue,
     uint16_t capacity)
@@ -8,18 +10,8 @@ cldt_status_t cldt_deadline_queue_init(
         return CLDT_ERR_INVALID_ARGUMENT;
     }
 
+    memset(queue, 0, sizeof(*queue));
     queue->capacity = capacity;
-    queue->queued = 0;
-    queue->high_water = 0;
-    queue->rejected = 0;
-    queue->expired = 0;
-    queue->coalesced = 0;
-    queue->pool_exhaustions = 0;
-
-    for (uint16_t i = 0; i < CLDT_ENDPOINT_MAX_POOL_SLOTS; i++) {
-        queue->slots[i].state = CLDT_SLOT_FREE;
-        queue->order[i] = 0;
-    }
 
     return CLDT_OK;
 }
@@ -47,10 +39,13 @@ cldt_status_t cldt_deadline_queue_commit(
         return CLDT_ERR_INVALID_ARGUMENT;
     }
 
+    (void)now_local_us;
+
     // TODO: Commit: validate PRODUCER_OWNED state, check already-expired, binary search insert into order[], update high_water
     // TODO: The EXACT algorithm (EDF = Earliest Deadline First, sorted by deadline_local_us)
     // TODO: Binary search: compare deadline_local_us in order[] array, find insertion point, memmove to shift
-    // TODO: Liu & Layland (1973): EDF is optimal for uniprocessor if utilization U = sum(Ci/Ti) <= 1
+    // TODO: Local EDF ordering is not an end-to-end schedulability proof. Retain
+    // queue, transport, radio, and acknowledgement timing evidence.
     // TODO: Admission control: when queue is full, reject the item with the LATEST deadline (either incoming or last in queue)
     // TODO: Coalescing: for CLDT_TRAFFIC_TELEMETRY, if a queued item has same source node, replace the older one
 
@@ -65,6 +60,8 @@ cldt_status_t cldt_deadline_queue_pop(
     if (queue == NULL || slot == NULL) {
         return CLDT_ERR_INVALID_ARGUMENT;
     }
+
+    (void)now_local_us;
 
     // TODO: Pop: always take order[0] (earliest deadline), shift array left, transition to TRANSPORT_OWNED
 
@@ -93,8 +90,11 @@ cldt_status_t cldt_deadline_queue_expire(
         return CLDT_ERR_INVALID_ARGUMENT;
     }
 
-    // TODO: Expiry sweep: traverse order[] once, remove items where deadline_local_us <= now_local_us, compact survivors without changing relative order
-    // TODO: esp_timer for periodic sweep: create with esp_timer_create_args_t, start with esp_timer_start_periodic(timer, 10000) for 10ms
+    (void)now_local_us;
+
+    // TODO: Expiry sweep: the queue-owning task traverses order[] once, removes
+    // expired items, and compacts survivors without changing relative order.
+    // TODO: A 10 ms esp_timer callback only notifies that owner; it never walks or mutates the queue
 
     return CLDT_ERR_NOT_IMPLEMENTED;
 }

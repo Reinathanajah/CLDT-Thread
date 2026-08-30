@@ -25,7 +25,7 @@ cldt_status_t cldt_policy_propose(
     const cldt_prediction_t *prediction,
     const cldt_policy_t *current,
     const cldt_policy_limits_t *limits,
-    uint64_t now_host_us,
+    uint64_t issued_gateway_us,
     cldt_policy_t *proposal);
 
 /* Checks aggregate and per-stream bounds before serialization. */

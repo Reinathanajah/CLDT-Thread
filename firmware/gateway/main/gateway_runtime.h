@@ -12,6 +12,7 @@
 
 #include "cldt/cldt_event_trace.h"
 #include "cldt/cldt_types.h"
+#include "policy_guard.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,8 +33,8 @@ typedef enum {
 typedef struct {
     cldt_node_id_t node_id;
     cldt_gateway_state_t state;
-    cldt_run_id_t active_run_id;
-    cldt_policy_t active_policy;
+    /* Sole owner of active run, policy, epoch, and remote-actuation state. */
+    cldt_policy_guard_t policy_guard;
     QueueHandle_t thread_rx_queue;
     QueueHandle_t observation_queue;
     QueueHandle_t command_queue;
@@ -41,7 +42,6 @@ typedef struct {
     TaskHandle_t supervisor_task;
     TaskHandle_t aggregator_task;
     TaskHandle_t publisher_task;
-    portMUX_TYPE policy_spinlock;
     bool started;
 } cldt_gateway_runtime_t;
 

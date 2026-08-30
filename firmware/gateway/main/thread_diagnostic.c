@@ -33,7 +33,8 @@ cldt_status_t cldt_thread_diagnostic_poll(cldt_cross_layer_observation_t *output
     // TODO: Partition change: compare leader_data.mPartitionId != s_last_partition_id
     // TODO: otThreadGetDeviceRole(instance): returns OT_DEVICE_ROLE_DISABLED/_DETACHED/_CHILD/_ROUTER/_LEADER
     // TODO: Role change: compare current_role != s_last_device_role
-    // TODO: These APIs run on ESP32-S3 host only, not on C6 RCP. Spinel transparently fetches MAC metrics.
+    // TODO: Call these APIs on the S3 OpenThread host. Verify which counters the
+    // pinned host/RCP configuration populates before using them as evidence.
     // TODO: Polling interval: configurable, default 1 second, use esp_timer for periodic callback
     
     return CLDT_ERR_NOT_IMPLEMENTED;

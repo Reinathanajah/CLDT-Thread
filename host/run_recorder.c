@@ -15,9 +15,12 @@ cldt_status_t cldt_run_recorder_open(
 
     /*
      * IMPLEMENTATION TODO:
-     * 1. Reject a template config, unsafe path component, empty manifest, or
-     *    pre-existing target directory. Derive the directory name from a stable
-     *    run identifier plus timestamp, never from unchecked user input.
+     * 1. Reject a template config, zero/unreserved run ID, unsafe path component,
+     *    empty manifest, or pre-existing target directory. Derive the directory
+     *    name from the reserved run identifier plus timestamp, never from
+     *    unchecked user input. Record the coordinator boot ID, ledger identity,
+     *    and, for actuation, the non-secret command-key identity so nonce
+     *    provenance is auditable.
      * 2. Create the directory atomically, copy the original manifest byte-for-
      *    byte, write its SHA-256 and a versions placeholder that will resolve
      *    source/binary identities plus the selected control_profile, then fsync

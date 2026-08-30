@@ -50,7 +50,8 @@ cldt_status_t cldt_estimator_score_prediction(
      * IMPLEMENTATION TODO: require that observed metrics are complete and refer
      * to the same run, policy epoch, and horizon as prediction. Compute residual
      * and interval coverage with a documented formula, update online statistics
-     * only once per scored horizon, and populate every fidelity-sample field.
+     * only once per scored horizon, and populate every fidelity-sample field,
+     * including model variant/revision and exact horizon identity.
      * A missing, stale, or unreconciled observation must produce a gate-relevant
      * failure signal rather than a favorable residual.
      */

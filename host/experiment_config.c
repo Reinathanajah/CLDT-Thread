@@ -23,6 +23,10 @@ cldt_status_t cldt_experiment_config_parse(
      *    of returning a generic parse failure.
      * 4. Compute the canonical manifest digest from the original validated bytes
      *    using one documented canonicalization rule; do not include credentials.
+     *    Leave output.run_id and output.command_authority_boot_id zero. The
+     *    launcher assigns them only after a separate durable global-ledger
+     *    reservation; parsing must not silently create nonce state or require a
+     *    command key for a shadow-only run.
      */
     return CLDT_ERR_NOT_IMPLEMENTED;
 }
@@ -37,7 +41,9 @@ cldt_status_t cldt_experiment_config_validate(
      * checks cannot prove: every stream source must name an endpoint, deadlines
      * must be compatible with their period, aggregate offered load must fit the
      * compiled safety ceiling, scenario time must lie inside measurement time,
-     * and remote actuation must be disabled for non-control treatments. Reject a
+     * and remote actuation must be disabled for non-control treatments. Version
+     * one accepts only NONE or BULK_RATE_REDUCE and rejects the reserved phase
+     * and power actions even though planning templates can name them. Reject a
      * configuration before any adapter or run directory is opened. Keep this
      * function deterministic so the same manifest has the same outcome on host
      * and in future gateway subset validation.

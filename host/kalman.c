@@ -38,7 +38,7 @@ cldt_status_t cldt_kalman_predict(cldt_kalman_t *kf) {
     (void)kf;
 
     // TODO: Exact Kalman equations: x_pred = F*x, P_pred = F*P*F^T + Q
-    // TODO: Computational cost: ~1000 FLOPs per update cycle, trivial for ESP32-S3 FPU
+    // TODO: Measure update cost on the actual host build; do not infer real-time behavior from an operation-count estimate
 
     return CLDT_ERR_NOT_IMPLEMENTED;
 }

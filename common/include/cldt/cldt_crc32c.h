@@ -8,9 +8,12 @@
 extern "C" {
 #endif
 
-// Platform-adaptive CRC-32C (Castagnoli).
-// ESP32: uses ROM LUT via esp_rom_crc32_le.
-// Host: uses software table.
+/*
+ * Planned platform-neutral CRC-32C (Castagnoli) contract. The scaffold returns
+ * a placeholder value until fixed known-answer vectors are implemented. Do not
+ * substitute esp_rom_crc32_le without proving the polynomial and seed/final-XOR
+ * conventions match CRC-32C on every target.
+ */
 uint32_t cldt_crc32c(uint32_t seed, const void *buf, size_t len);
 
 #ifdef __cplusplus
