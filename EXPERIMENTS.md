@@ -16,7 +16,7 @@ The principal investigation evaluates whether incorporating internal node and MA
 
 1. **Naive Baseline ($M_{\text{naive}}$):** A historical moving-average predictor that establishes the non-parametric statistical floor.
 2. **Network-Only Model ($M_{\text{network}}$):** $M_{\text{network}} = f_\theta(X_{\text{network}})$, utilizing network-visible features including packet delivery outcome, link RSSI, and offered traffic load.
-3. **Cross-Layer Model ($M_{\text{cross}}$):** $M_{\text{cross}} = f_\theta(X_{\text{network}}, X_{\text{cross}})$, utilizing network features plus internal device telemetry: OpenThread MAC counters (`mTxRetry`, `mTxErrCca`, `mTxDirectMaxRetryExpiry`), endpoint EDF queue occupancy and preemptive expiry counts, parent link quality (`mLinkQualityIn`/`mLinkQualityOut`), and FreeRTOS execution traces.
+3. **Cross-Layer Model ($M_{\text{cross}}$):** $M_{\text{cross}} = f_\theta(X_{\text{network}}, X_{\text{cross}})$, utilizing network features plus internal device telemetry: OpenThread MAC counters (`mTxRetry`, `mTxErrCca`, `mTxDirectMaxRetryExpiry`), endpoint EDF queue occupancy and deadline-expiry counts, parent link quality (`mLinkQualityIn`/`mLinkQualityOut`), and FreeRTOS execution traces.
 
 The statistical comparison evaluates the relative reduction in held-out P95 prediction error:
 
@@ -33,7 +33,7 @@ $$
 $$
 
 **Uncertainty Estimation and Decision Outcomes:**
-Independent physical **runs** (with randomized treatment order and distinct boot cycles) serve as the primary experimental unit for between-condition comparisons. For intra-run time series, paired prediction errors from identical held-out horizons are resampled using a **block bootstrap** (1,000 resamples), with block length determined by empirical residual autocorrelation decay, to construct the empirical bootstrap distribution and one-sided lower confidence bound for $\Delta$. The analysis distinguishes three outcomes:
+Independent physical **runs** (with randomized treatment order and distinct boot cycles) serve as the primary experimental unit for between-condition comparisons. Primary uncertainty is calculated from run-level summaries or a cluster bootstrap that resamples whole runs. A within-run block bootstrap (1,000 resamples, block length selected from residual autocorrelation decay) may characterize paired time-series uncertainty, but it cannot turn windows from one physical run into independent experimental replicates. The analysis distinguishes three outcomes:
 1. $\text{LCB}_{0.95}(\Delta) > 0.15$: Evidence supports held-out improvement exceeding the 15% engineering relevance threshold under the tested conditions.
 2. $\hat{\Delta} > 0.15$ but $\text{LCB}_{0.95}(\Delta) \le 0.15$: The observed point improvement exceeds the threshold, but the experiment does not establish that improvement with the required 95% confidence.
 3. $\hat{\Delta} \le 0.15$: The observed improvement does not reach the engineering relevance threshold.
@@ -42,9 +42,23 @@ Failing to reject $H_0$ does not constitute proof of no benefit or model equival
 
 ### Primary Question: Does Fidelity-Gated Control Fail Safely?
 
-The second primary question asks whether a valid, finite policy is withdrawn when the evidence supporting it becomes stale or invalid. The initial actuator surface is deliberately narrow: reduce bulk traffic rate or burst behavior while preserving a protected critical stream. The stale-observation scenario pauses only the gateway-to-host observation publication path; endpoint traffic and Thread routing continue. The expected result is a recorded gate abstention and edge-local fallback, not a service outage.
+The second primary question asks whether a valid, finite policy is withdrawn when the evidence supporting it becomes stale or invalid. The initial actuator surface is deliberately narrow: reduce only the bulk stream's offered rate while preserving a protected critical stream; burst, batch, phase, and critical-stream fields remain unchanged. The stale-observation scenario pauses only the gateway-to-host observation publication path; endpoint traffic and Thread routing continue. The expected result is a recorded gate abstention and edge-local fallback, not a service outage.
 
-The safety outcome is not a favorable performance number. **Zero invalid policy applications** is the acceptance criterion for the tested negative cases: stale observation, expired command, wrong run ID, duplicate or older epoch, unauthenticated/corrupted payload, endpoint restart, and local-limit violation. Beyond a binary pass/fail, the gate's behavior curve is characterized over time (observation age vs. gate state, hysteresis recovery windows, and Kalman covariance $P[2][2]$ bounds).
+The safety outcome is not a favorable performance number. **Zero invalid policy applications** is the acceptance criterion for the tested negative cases: stale observation, incomplete or unreconciled evidence, expired command, wrong run or coordinator identity, duplicate or older epoch, unauthenticated/corrupted payload, endpoint restart, and local-limit violation. Beyond a binary pass/fail, the gate's behavior curve is characterized over time (observation age vs. gate state, reason, calibrated-region status, hysteresis recovery windows, and Kalman covariance $P[2][2]$ bounds).
+
+### Conditional Depth Question: Does The Gate Avoid False Trust Under A Held-Out Physical Context?
+
+After the stable baseline, reconciled recorder, and frozen shadow model exist, a
+controlled placement/link-context shift may test whether an explicit calibration
+envelope reduces false trust outside the source context. The model and all gate
+thresholds are frozen before target runs. This condition remains shadow-only
+until stale, authentication, fallback, and replay safety have already passed.
+
+The comparison is between always trusting the prediction, the residual/freshness
+gate without region detection, and the same gate with calibrated-region
+detection. A valid success requires both fewer false-trust horizons in the
+held-out context and a predeclared minimum trusted-horizon fraction in-domain.
+Abstaining everywhere is safe but not a successful predictive gate.
 
 ### Extension: What Does ESP32-S3 SMP Change?
 
@@ -52,7 +66,7 @@ The SMP comparison is an optional extension that becomes valid only after the ph
 
 ### Extension: What Is The Energy Cost Of Timeliness?
 
-The power-policy experiment compares an always-on endpoint profile with a bounded low-power profile under matched traffic and service acceptance. The primary energy expression is energy per successfully delivered critical item, reported beside critical service rather than in isolation. INA219 values are comparative measurements only unless their calibration, sampling interval, rail boundary, and measurement overhead have been documented. A lower energy number that follows a loss of critical service is not an improvement.
+The power-policy experiment is deferred beyond the version-one critical path. If later admitted, it compares an always-on endpoint profile with a bounded low-power profile under matched traffic and service acceptance. The primary energy expression is energy per successfully delivered critical item, reported beside critical service rather than in isolation. No current sensor is presumed adequate: instrument resolution, calibration, sampling interval, rail boundary, and measurement overhead must first be documented. A lower energy number that follows a loss of critical service is not an improvement.
 
 ## Experiment Pack And Priority
 
@@ -66,10 +80,10 @@ The eight manifests are not eight mandatory final results. They are a progressio
 | [stale-observation.json](experiments/stale-observation.json) | Gate abstention and local fallback | One finite action exists and stale-observation fallback is captured end to end |
 | [restart-replay.json](experiments/restart-replay.json) | Command freshness and restart safety | Old, expired, wrong-run, and replay attempts are recorded as rejections |
 | [smp-comparison.json](experiments/smp-comparison.json) | S3 scheduler comparison | Matched SMP/unicore builds and paired physical runs exist |
-| [power-policy.json](experiments/power-policy.json) | Comparative energy/service trade-off | Power measurement boundary and sampler overhead control are documented |
-| [topology-shift.json](experiments/topology-shift.json) | Model/fidelity response to a controlled placement change | Before/after positions and actual Thread topology are recorded |
+| [power-policy.json](experiments/power-policy.json) | Deferred comparative energy/service trade-off | A suitable instrument, power boundary, and sampler-overhead control are documented in a later phase |
+| [topology-shift.json](experiments/topology-shift.json) | Conditional calibration-envelope response to a controlled placement/link-context change | Core shadow evidence is complete; before/after positions and actual role/link/topology state are recorded |
 
-The required core sequence is local RTOS baseline, stable Thread baseline, held-out load-step prediction, stale-observation fallback, and restart/replay safety. SMP, power, and topology-shift results are valuable only when they do not endanger the primary evidence chain within the available time window.
+The required core sequence is local RTOS baseline, stable Thread baseline, held-out load-step prediction, stale-observation fallback, and restart/replay safety. Calibration-envelope/context-shift evaluation and feature ablation are conditional depth only after the frozen shadow result exists. SMP and power are deferred before any core evidence requirement is weakened.
 
 ## Manifest Lifecycle
 
@@ -111,8 +125,8 @@ The independent variables are intentionally limited. Changing traffic shape, pla
 |---|---|---|
 | Independent | Model feature set, load step, observation pause, scheduler mode, endpoint profile, physical placement | Change one intended cause per experiment condition |
 | Controlled | Board identity, firmware/hash, upstream revision, Thread channel, payload format, topology, placement, power path, run phase durations | Freeze within a calibration or paired block |
-| Recorded Context | RSSI/link state, actual Thread role/parent, queue high-water, task/core state, clock uncertainty, ambient/operator notes | Record rather than assume constant |
-| Dependent | On-time critical delivery, deadline miss ratio, response/queue delay, prediction error, gate transitions, rejected commands, energy per delivered item | Compute only from reconciled, attributable records |
+| Recorded Context | RSSI/link state, actual Thread role/parent/partition, queue high-water, task/core state, clock uncertainty, source presence/freshness, ambient/operator notes | Record rather than assume constant |
+| Dependent | On-time critical delivery, deadline miss ratio, response/queue delay, prediction error, false trust, trusted-horizon fraction, gate transitions, rejected commands, energy per delivered item | Compute only from reconciled, attributable records |
 
 The physical radio environment cannot be controlled perfectly. Instead, document it. If a person moves a node, a board changes parent, a USB hub browns out, a Wi-Fi backhaul reconnects, or a configuration value changes, capture that fact. The event either becomes a predeclared scenario or invalidates the comparison; it does not disappear into “noise.”
 
@@ -129,11 +143,16 @@ All metrics refer to unique logical items identified by the tuple `run_id, node_
 | Prediction error | Difference between pre-event prediction and observed metric on the same horizon | Held-out horizon was not used to tune model parameters |
 | Relative P95 prediction error | P95 of absolute relative prediction error over valid scored horizons | Near-zero denominators are handled by a predeclared rule |
 | Prediction-interval coverage | Fraction of observations inside the model’s declared interval | Interval construction is versioned before scoring |
+| Trusted-horizon fraction | Scored horizons for which the frozen gate permits trust divided by all eligible scored horizons | Eligibility and every abstention reason are retained; missing data cannot disappear from the denominator silently |
+| False-trust rate | Trusted horizons whose frozen error tolerance or critical-service floor is violated divided by trusted horizons | Tolerance and service floor are selected before held-out outcomes are inspected |
+| Selective prediction error | Prediction error summarized only over trusted horizons and reported beside trusted-horizon fraction | A low error obtained by abstaining almost everywhere is not reported alone |
+| False-abstention rate | In-domain eligible horizons that satisfy every frozen validity/error condition but remain untrusted | Source-context label and all gate inputs are retained |
 | Observation age | Host monotonic time minus time of newest accepted physical observation | Time mapping and uncertainty are available |
 | Fallback latency | Time from a declared stale/invalid condition to the local fallback event | Trigger and fallback clocks are traceable or uncertainty-qualified |
-| Energy per delivered critical item | Measured energy over the stated rail boundary divided by on-time delivered critical items | Identical service floor and calibrated measurement boundary apply to both conditions |
+| Requalification latency | Time from restored valid evidence to re-entry into `TRUSTED` after the complete hysteresis sequence | Recovery start, every passing window, and any reset to `ABSTAIN` are recorded |
+| Energy per delivered critical item (deferred) | Measured energy over the stated rail boundary divided by on-time delivered critical items | A later admitted study uses an identical service floor and calibrated measurement boundary for both conditions |
 
-Reconciliation is intentionally two-stage. First, a sorted raw-trace audit must verify each full logical identity has exactly one release and at most one terminal outcome, with no terminal lacking a release and no unresolved item hidden at the boundary. Second, aggregate reconciliation must balance releases, terminal outcomes, and declared in-flight work per class. A run must pass both: equal totals alone can conceal a duplicated terminal for one item and a missing terminal for another.
+Reconciliation is intentionally two-stage. First, a sorted raw-trace audit must verify each full logical identity has exactly one release and at most one terminal outcome, with no terminal lacking a release and no unresolved item hidden at the boundary. Second, aggregate reconciliation must balance releases, terminal outcomes, and declared in-flight work per class. A run must pass both: equal totals alone can conceal a duplicated terminal for one item and a missing terminal for another. Layer-specific diagnostic counts—queue admission, MAC attempts/acknowledgements, gateway receipt, and application acceptance—are retained as typed evidence but are not forced to be numerically equal because retries, fragmentation, and observer loss change their meaning.
 
 Do not report one-way latency without clock uncertainty beside it. Do not report a percentage unless both per-item and aggregate reconciliation pass. Do not report an energy improvement without showing the companion service result.
 
@@ -143,17 +162,32 @@ The project compares models rather than merely training one. A calibration block
 
 To isolate the contribution of cross-layer telemetry, both candidate models ($M_{\text{network}}$ and $M_{\text{cross}}$) share the same underlying model family ($f_\theta$), loss formulation, calibration data, and held-out horizons. Both realizations must be frozen before measurement runs used for final scoring, and their precise state/observation matrices are recorded as calibration artifacts in the evidence bundle.
 
+The naive moving average is a mandatory benchmark but not an actuation candidate. Version one predeclares the cross-layer variant as the only model eligible to feed the fidelity gate after it passes frozen shadow acceptance criteria. The network-only model remains a matched comparator. If the cross-layer candidate fails, actuation stays disabled; the controller model is not switched after seeing which result looks best. Model variant, revision, issuance time, and exact horizon boundaries are part of every prediction and score.
+
+After the primary three-model comparison is frozen, a feature-group ablation may
+evaluate network-only, network-plus-MAC, network-plus-queue, and complete
+cross-layer inputs on the same horizons. It is secondary analysis: it cannot be
+used to retrospectively choose the feature set that is then called the original
+primary model.
+
+For calibration-envelope analysis, continuous pre-outcome features are
+normalized using calibration-only statistics, while unseen categorical role,
+parent, or partition identities are handled explicitly. The support rule and
+threshold are frozen on a calibration block distinct from the target context.
+Ordinary residual quantiles or robust-distance thresholds must not be labeled
+as formally distribution-free conformal prediction.
+
 **Temporal Availability and Target Leakage Prevention:** A prediction issued at time $t$ for a future evaluation horizon $[t_0, t_1]$ ($t_0 \ge t$) may use only features and observations available at or before issuance time $t$. Historical features such as past delivery outcomes, MAC retry deltas, and queue depths refer strictly to observations completed prior to $t$; no outcome or metric from the future prediction horizon may appear in the predictor inputs.
 
-For every scored horizon, retain the model revision, feature-set label, prediction issuance time, prediction horizon, predicted interval, source evidence bundle, and observed outcome. Score the network-only and cross-layer model on the exact same horizons. If the feature set or code changes, start a new model revision and do not merge scores across revisions as though they were one treatment.
+For every scored horizon, retain the model revision, feature-set label, prediction issuance time, prediction horizon, predicted interval, calibrated-region result, observation-integrity result, source evidence bundle, and observed outcome. Score the naive, network-only, and cross-layer models on the exact same horizons. If the feature set or code changes, start a new model revision and do not merge scores across revisions as though they were one treatment.
 
-The fidelity gate is evaluated on completed prior horizons. It must never look at the future observed outcome of the policy it is deciding to issue. A model that is frequently “trusted” but wrong is not a successful controller; a gate that abstains frequently may be correct if it is doing so for documented data-quality reasons.
+The fidelity gate is evaluated on completed prior horizons. It must never look at the future observed outcome of the policy it is deciding to issue. A missing, stale, contradictory, or unreconciled observation is an explicit failure input rather than a skipped horizon. A model that is frequently “trusted” but wrong is not a successful controller; a gate that abstains frequently may be correct if it is doing so for documented data-quality reasons, but usefulness must still be reported through trusted-horizon fraction.
 
 ## Execution Procedure
 
 ### Before The First Reportable Run
 
-1. Label every board physically and logically. Record the gateway, RCP, router-capable endpoint, and low-power endpoint identities.
+1. Label every board physically and logically. Record the gateway, RCP, router-capable endpoint, and second workload-endpoint identities; do not infer a low-power Thread role from the label.
 2. Build and archive the firmware, upstream dependency references, build configuration, and binary digests. Ensure the RCP and border router attach repeatedly through power cycles.
 3. Survey and photograph the physical placement. Record channel, orientation, power connections, UART wiring, and expected backhaul path.
 4. Run a local RTOS accounting pilot with Thread disabled. Verify that release, queue, expiry, and terminal records reconcile.
@@ -163,17 +197,18 @@ The fidelity gate is evaluated on completed prior horizons. It must never look a
 ### For Each Physical Run
 
 1. Validate the strict ready JSON file and preserve its exact bytes before booting the measurement phase.
-2. Resolve the selected control profile, record its ID, calibration ID, and digest, then reject the run if it does not match the manifest.
-3. Create a new run directory. It must not reuse an existing directory or overwrite an older run.
-4. Confirm board identity, firmware identity, Thread attachment, actual topology, time-sync health, and baseline counter state.
-5. Start warm-up. Record warm-up data but keep it outside the primary measurement calculation.
-6. Start the measurement window, store the monotonic start boundary, and capture every observation before updating the model.
-7. Introduce only the manifest’s one declared scenario at the frozen time. Record operator action and observed device acknowledgement.
-8. For shadow-model runs, predict and score without enabling remote actuation.
-9. For safety runs, allow only the named finite candidate action and retain every acceptance, rejection, expiry, and fallback trace.
-10. End measurement and cooldown cleanly. Request final counters from each device before finalizing evidence.
-11. Reconcile counters by traffic class. Mark the run invalid if reconciliation fails or a planned control condition was not reached.
-12. Write one terminal status and operator notes. A run may be complete, invalid, or interrupted; it is never silently discarded.
+2. Resolve the selected control profile, record its ID, calibration ID, actuation-model variant, and digest, then reject the run if it does not match the manifest.
+3. Reserve a nonzero CSPRNG run ID in the durable global ledger and generate a nonzero coordinator boot/session ID. For actuation, bind the non-secret command-key identity; lost ledger continuity requires key rotation.
+4. Create a new run directory. It must not reuse an existing directory or overwrite an older run.
+5. Confirm board identity, firmware identity, Thread attachment, actual topology, time-sync health, and baseline counter state.
+6. Start warm-up. Record warm-up data but keep it outside the primary measurement calculation.
+7. Start the measurement window, store the monotonic start boundary, and capture every observation before updating any model.
+8. Introduce only the manifest’s one declared scenario at the frozen time. Record operator action and observed device acknowledgement.
+9. For shadow-model runs, predict and score without enabling remote actuation.
+10. For safety runs, allow only the named finite candidate action and retain every acceptance, rejection, expiry, and fallback trace.
+11. End measurement and cooldown cleanly. Request final counters from each device before finalizing evidence.
+12. Reconcile counters by traffic class. Mark the run invalid if reconciliation fails or a planned control condition was not reached.
+13. Write one terminal status and operator notes. A run may be complete, invalid, or interrupted; it is never silently discarded.
 
 ### Paired And Repeated Runs
 
@@ -185,15 +220,15 @@ There is no universal repetition count that magically fixes a noisy wireless exp
 
 ### Stale Observation Fallback
 
-Use an application-level publication gate at the gateway or host adapter to pause observations after normal gated-control operation begins. Do not jam RF, disconnect endpoints, or perturb Thread routing. The pause duration must exceed the control profile’s recorded maximum observation age with a margin that lets recovery be seen. The expected evidence sequence is: newest accepted observation, stale condition, host gate abstention, finite command expiry or local fallback, endpoint acknowledgement, and post-fallback counter/service state.
+Use an application-level publication gate at the gateway or host adapter to pause observations after normal gated-control operation begins. Do not jam RF, disconnect endpoints, or perturb Thread routing. The pause duration must exceed the control profile’s recorded maximum observation age with a margin that lets recovery be seen. The expected evidence sequence is: newest accepted observation, stale condition, host gate abstention, finite command expiry or local fallback, endpoint acknowledgement, restored observation stream, `ABSTAIN` to `OBSERVE` transition, complete passing-window sequence, and either evidence-based return to `TRUSTED` or documented continued abstention.
 
 ### Restart And Replay
 
-First prove one normal command acceptance with valid ChaCha20-Poly1305 authentication (RFC 8439) using the active pre-shared key. Then restart only the selected endpoint and record a new boot identity. Send old-epoch, expired, wrong-run, corrupted-tag, and replayed commands through the normal gateway path; never bypass authentication or call private apply functions. Every attempt must have a logged status code and reason (`CLDT_ERR_AUTHENTICATION`, `CLDT_ERR_EXPIRED`, `CLDT_ERR_OUT_OF_ORDER`, `CLDT_ERR_WRONG_RUN`). Zero invalid policy applications is the acceptance criterion for the tested replay, authentication, epoch freshness, and state-validation cases.
+First commission a unique run and coordinator boot identity, then prove one normal global command acceptance with valid ChaCha20-Poly1305 authentication (RFC 8439) using the active command key. Evidence must show that the endpoint durably records the commissioned authority and accepted epoch before policy publication. Then restart only the selected endpoint, record a new endpoint boot identity, and verify that it reloads the same replay record. Send old-epoch, expired, wrong-run, wrong-authority-boot, corrupted-tag, and byte-for-byte replayed commands through the normal gateway path; never bypass authentication or call private apply functions. Separately exercise a missing or corrupt replay-record fixture: the endpoint must retain its compiled safe policy and refuse remote apply until explicitly commissioned into a new unique run. Every attempt must have a logged status code and reason (`CLDT_ERR_AUTHENTICATION`, `CLDT_ERR_EXPIRED`, `CLDT_ERR_OUT_OF_ORDER`, `CLDT_ERR_WRONG_RUN`, `CLDT_ERR_WRONG_AUTHORITY`, or `CLDT_ERR_NOT_READY`). Endpoint `boot_id` is restart evidence, not the replay primitive. Zero invalid policy applications is the acceptance criterion for the tested replay, authentication, persistence, epoch-freshness, and state-validation cases.
 
-### Topology Shift
+### Physical Context Shift
 
-Move only the endpoint named in the manifest between two pre-measured, photographed positions. Keep other boards, the channel, and workload fixed. Record actual role, parent, partition, and link state before and after the shift. A correct result can be either documented retained fidelity or gate abstention. Selecting the favorable interpretation after seeing the graph is prohibited.
+Move only the endpoint named in the manifest between two pre-measured, photographed positions. Keep other boards, the channel, and workload fixed. Record actual role, RLOC16, parent, partition, RSSI/link quality, and available MAC/MLE diagnostics before and after the shift. Call the condition a **topology shift** only if the recorded Thread role/parent/partition/router evidence changes; otherwise report it as a placement or link-context shift. A correct result can be either documented retained fidelity or gate abstention. Selecting the favorable interpretation after seeing the graph is prohibited.
 
 ## Acceptance, Exclusion, And Reporting Rules
 
@@ -213,36 +248,39 @@ The final report must include negative results, failed safety checks, and invali
 Each run directory contains an immutable evidence package:
 
 - the original ready manifest and its SHA-256 digest;
-- `versions.json` recording source revision, ESP-IDF/upstream revision, build configuration, binary hashes, control-profile/calibration identity, and tool versions;
+- `versions.json` recording source revision, ESP-IDF/upstream revision, build configuration, binary hashes, control-profile/calibration/model identity, and tool versions;
+- reserved run-ledger record and, for actuation, the non-secret command-key identity;
 - physical topology/placement record and required photographs;
-- raw append-only event stream (`events.csv`) and broker captures;
+- raw append-only event stream (`events.ndjson`) and broker captures;
 - device final counters, trace-drop counts, queue high-water marks, and clock-uncertainty data;
-- command audit containing proposal, acceptance/rejection reason, epoch, TTL, Poly1305 authentication tags, expiry, and fallback records;
+- per-horizon source presence, freshness, reconciliation, calibrated-region, and gate-reason records;
+- command audit containing proposal, acceptance/rejection reason, epoch, durable replay-state transitions, TTL, Poly1305 authentication tags, expiry, and fallback records;
 - model revision, prediction horizons, feature-set label, and derived analysis;
 - calibration and rail-boundary record for power runs; and
 - terminal status plus operator notes.
 
-[host/analysis/reproduce.py](host/analysis/reproduce.py) is the scaffold for the planned post-hoc reproduction pipeline. Once fully implemented, it is designed to take a completed run directory, verify the manifest digest and lifecycle event reconciliation, fit the naive, network-only, and cross-layer models on the manifest-defined calibration block, score on held-out horizons, compute 95% block-bootstrap confidence intervals, and output the primary metric table.
+[host/analysis/reproduce.py](host/analysis/reproduce.py) is the scaffold for the planned post-hoc reproduction pipeline. At the scaffold stage it exits nonzero and produces no result. Once fully implemented, it is designed to take a completed run directory, verify the manifest digest and lifecycle event reconciliation, fit the naive, network-only, and cross-layer models on the manifest-defined calibration block, score on held-out horizons, compute run-aware confidence intervals, characterize calibration-envelope/gate behavior, and output the primary metric table.
 
-## Six-And-A-Half-Week Execution Plan
+## Six-Week Execution Plan
 
-The schedule is evidence-first. It assumes the work window from mid-September to 1 November and treats optional features as expendable.
+The schedule is evidence-first and treats every non-core feature as expendable.
 
 | Period | Gate | Output Required Before Moving Forward |
 |---|---|---|
-| Week 1 | Local correctness | Protocol/metric skeleton implemented enough for fixed tests; local endpoint accounting manifest completed from pilots |
-| Week 2 | Physical Thread baseline | RCP and border router attach; two endpoints communicate; topology and versions are archived |
-| Week 3 | Observation integrity | Project frames, gateway bridge, raw recorder, and reconciliation function through repeated baseline runs |
-| Week 4 | Shadow-model validity | Network-only and cross-layer models score on a predeclared held-out load step |
-| Week 5 | Safety closure | Fidelity gate, finite bulk action, stale-observation fallback, and restart/replay rejection produce complete audit traces |
-| Week 6 | Optional depth | SMP/unicore or calibrated power extension only if primary gates remain stable |
-| Final days | Freeze and communicate | Repeat core runs, verify artifacts, write limitations, and prepare a short live explanation that never overclaims |
+| Days 1–3 | Frozen contracts | Scope, pin map, protocol/authentication bytes, toolchain revision, and procurement boundary are fixed |
+| Week 1 | Portable and upstream foundations | Host contracts build, fixed vectors begin replacing skips, and upstream RCP/border-router images build and flash |
+| By Day 10 | Highest-risk physical path | Repeatable cold boot and sustained S3/RCP/one-endpoint Thread UDP; otherwise model/control depth is cut |
+| Week 2 | Local and physical baseline | Endpoint accounting is correct; the second endpoint attaches only after the one-endpoint soak gate |
+| Week 3 | Observation integrity | Project frames, bounded bridge, raw recorder, item audit, and aggregate reconciliation function through repeated baselines |
+| Week 4 | Shadow-model validity | Naive, network-only, and cross-layer models are frozen and scored on a predeclared held-out load step |
+| Week 5 | Safety closure | Observation-integrity/calibrated-region gate inputs, one finite bulk action, stale fallback/requalification, and restart/replay rejection produce complete traces |
+| Week 6 | Freeze and communicate | Final repetitions, automated reproduction, limitations, and presentation; context-shift/ablation depth only if already stable |
 
-If Week 3 is late, remove optional work immediately. A high-quality baseline plus a complete stale-fallback experiment is more valuable than a dashboard, sensor integration, and half-finished power claim.
+If Week 3 is late, remove conditional depth immediately. If the shadow model is not frozen by the end of Week 4, run no physical context-shift claim and enable no remote actuation. SMP, power, passive capture, additional nodes, SPI migration, dashboards, and multi-action control are future work. A high-quality baseline plus a complete stale-fallback experiment is more valuable than several half-integrated extensions. See [FUTURE_PROJECTION.md](FUTURE_PROJECTION.md).
 
 ## Limits Of Interpretation
 
-This protocol measures a small, specific 802.15.4 Thread topology, not the performance of Thread in general. It does not establish a production security posture, an O-RAN implementation, Wi-Fi 7 behavior, cellular performance, or a universal digital-twin architecture. It may show that a particular cross-layer feature set improves, matches, or fails to improve prediction under the documented conditions. Each result must remain scoped to the actual hardware, radio environment, workload, firmware, model revision, and repetition set recorded in its evidence.
+This protocol measures a small, specific 802.15.4 Thread topology, not the performance of Thread in general. It does not establish a production security posture, an O-RAN implementation, Wi-Fi 7 behavior, cellular performance, or a universal digital-twin architecture. A held-out placement result adds evidence about one declared context shift; it does not erase the one-family, one-stack external-validity limit. The study may show that a particular cross-layer feature set improves, matches, or fails to improve prediction under the documented conditions. Each result remains scoped to the actual hardware, radio environment, workload, firmware, model revision, and repetition set recorded in its evidence.
 
 That limitation is not a weakness. BMW Lab’s public research spans much larger wireless and digital-twin environments; a well-executed small system demonstrates the transferable discipline of data collection, synchronized modeling, controlled experimentation, and evidence-backed control without pretending that a low-cost bench is a cellular lab. The linked TEEP page is the 2026 call and is used only as historical evidence of topic alignment; later calls may differ. [BMW Lab Research](https://sites.google.com/view/bmw-lab/from-prof-ray-website/research) [2026 TEEP Program Listing](https://teep.studyintaiwan.org/program/2109)
 

@@ -14,6 +14,8 @@ Which experiment manifest is affected? (e.g., `experiments/baseline.json`)
 - [ ] Manifest field error or missing value
 - [ ] Counter reconciliation mismatch
 - [ ] Evidence integrity problem
+- [ ] Calibration-envelope or gate-classification problem
+- [ ] Observation missingness/disagreement
 - [ ] Run marked invalid or interrupted
 
 **Description**
@@ -24,3 +26,5 @@ If this relates to a physical run, provide:
 - Run ID:
 - Terminal status (complete / invalid / interrupted):
 - Relevant raw trace excerpt or counter summary:
+- Gate state/reason and calibrated-region status:
+- Observation-integrity status and clock uncertainty:

@@ -18,7 +18,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-At the scaffold stage, all four test executables return skip code 77. A green build proves interface consistency, not a working digital twin.
+At the scaffold stage, all seven test executables return skip code 77. A green build proves interface consistency, not a working digital twin.
 
 `host/analysis/reproduce.py` is the CLI entry point and scaffold for the planned post-hoc reproduction pipeline:
 
@@ -26,7 +26,7 @@ At the scaffold stage, all four test executables return skip code 77. A green bu
 python host/analysis/reproduce.py results/sample_run/
 ```
 
-At the scaffold stage, function stubs contain TODO markers and must be implemented before experimental scoring.
+At the scaffold stage, function stubs contain TODO markers and the reproduction entry point exits nonzero after its scaffold notice. It must be implemented before experimental scoring.
 
 ## Manifest Validation
 
@@ -52,6 +52,24 @@ for p in sorted(pathlib.Path('experiments').glob('*.json')):
 3. **Do not modify prior run evidence.** Raw experiment data is append-only. Derived analysis may be regenerated, but raw traces and terminal status files must not be edited or deleted.
 4. **One change per commit.** Separate build fixes, documentation changes, manifest updates, and code changes into distinct commits with conventional prefixes (`fix:`, `docs:`, `feat:`, `chore:`).
 5. **Validate before pushing.** Every strict JSON manifest in `experiments/` must pass schema validation. The CI workflow enforces this automatically.
+
+## Scope Changes And Future Work
+
+The current six-week boundary is normative in `README.md`, `DESIGN.md`,
+`EXPERIMENTS.md`, and `hardware/BOM.md`. `FUTURE_PROJECTION.md` is a
+non-normative roadmap and does not authorize implementation or procurement.
+
+A proposal that adds hardware, a new firmware/toolchain ecosystem, a new model
+family, another policy action, or another primary experiment must state:
+
+1. the new falsifiable question;
+2. the current deliverable it would delay or replace;
+3. its entry and stop gates;
+4. its budget and availability impact; and
+5. why existing hardware or replay evidence cannot answer the question.
+
+Without all five, keep the idea in `FUTURE_PROJECTION.md`. Do not broaden a
+ready manifest or current BOM by implication.
 
 ## Code Style
 

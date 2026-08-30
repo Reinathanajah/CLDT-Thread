@@ -14,6 +14,13 @@ Which part of the repository is affected?
 - [ ] Experiment manifests / schema
 - [ ] CI workflow
 - [ ] Documentation
+- [ ] Hardware/pin/power contract
+
+**Repository Maturity**
+- [ ] Scaffold contract only
+- [ ] Host implementation
+- [ ] Firmware build
+- [ ] Physical run
 
 **Description**
 A clear description of the bug.
@@ -34,3 +41,5 @@ What happens instead. Include error messages or log output.
 - Compiler:
 - CMake version:
 - ESP-IDF version (if firmware):
+- Board revision and wiring reference (if hardware):
+- Run ID and terminal status (if physical evidence exists):

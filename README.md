@@ -4,7 +4,7 @@ This repository is the implementation scaffold for a low-cost, hardware-in-the-l
 
 The central question is deliberately narrow:
 
-> Under what measured conditions is a low-cost network model accurate enough to influence a real Thread IoT system, and how does the system safely abstain when that confidence is no longer justified?
+> Under what measured conditions is a low-cost network model accurate enough to influence a real Thread IoT system, and how does the system safely abstain when model support, observation integrity, or freshness is no longer justified?
 
 The repository is intentionally not a finished product. It contains contracts, build structure, experiment templates, and detailed implementation boundaries. Project-owned C files are skeletal: they either return `CLDT_ERR_NOT_IMPLEMENTED` or perform bootstrap-only work. No latency, energy, reliability, digital-twin, or SMP result is claimed yet. The future value of this project comes from implementing those boundaries, running the protocol honestly, and publishing the evidence—including failures.
 
@@ -16,7 +16,7 @@ The current repository is an implementation-ready research scaffold. It defines 
 |---|---|---|
 | Common contracts | C headers and initial scaffolds for frames, timestamps, trace records, metrics, statuses, ChaCha20-Poly1305 auth (`cldt_auth.h`), CRC-32C (`cldt_crc32c.h`), and control profiles | A validated production protocol implementation |
 | Host application | Coordinator, Kalman filter state estimator (`kalman.h`), twin model, fidelity gate, policy generator, broker adapter, recorder, manifest parser, and `reproduce.py` reproduction scaffold | A runnable host control loop or a real broker session |
-| ESP32 firmware | Separate ESP-IDF projects: S3 gateway (with OpenThread MAC diagnostics `thread_diagnostic.h`) and C6 endpoint (with EDF deadline queue `deadline_queue.h` and INA219 power probe `power_probe.h`) | A flashed Thread mesh, MQTT bridge, BLE provisioning, or policy application |
+| ESP32 firmware | Separate ESP-IDF projects: S3 gateway (with OpenThread MAC-diagnostic contracts) and C6 endpoint (with EDF deadline-queue and optional power-probe contracts) | A flashed Thread mesh, MQTT bridge, provisioning flow, or policy application |
 | Experiments | Eight schema-valid planning manifests, each intentionally incomplete | A run-ready manifest or captured result |
 | Verification | CMake layout and test skeletons that return the documented skip code | Passing unit, integration, hardware, or statistical tests |
 | Documentation | Scope, design, execution protocol, budget, evidence rules, and implementation order | Evidence that the planned system meets them |
@@ -38,7 +38,7 @@ The planned hardware topology separates the Thread radio from the application ga
 ```mermaid
 flowchart LR
     E1["ESP32-C6 Endpoint A<br/>Router-Capable Workload Node"]
-    E2["ESP32-C6 Endpoint B<br/>Low-Power Workload Node"]
+    E2["ESP32-C6 Endpoint B<br/>Second Workload Node"]
     RCP["ESP32-C6 RCP<br/>Upstream 802.15.4 Radio Firmware"]
     GW["ESP32-S3 Gateway<br/>OpenThread Host + Local Policy Guard"]
     AP["Existing Private Wi-Fi Access Point"]
@@ -63,13 +63,20 @@ The gateway is an edge safety authority, not a blind forwarding path. The host i
 
 | Component | Planned Role | Evidence It Must Produce Before It Is Credited |
 |---|---|---|
-| ESP32-S3 | OpenThread border-router host, Wi-Fi backhaul, trace aggregation, local policy guard, SMP/unicore comparison target | Binary hash, `sdkconfig`, task/core trace, policy decision trace, and backhaul health |
+| ESP32-S3 | OpenThread border-router host, Wi-Fi backhaul, trace aggregation, and local policy guard | Binary hash, `sdkconfig`, task/core trace, policy decision trace, and backhaul health |
 | ESP32-C6 RCP | Dedicated IEEE 802.15.4 radio co-processor using upstream RCP firmware | Exact upstream revision, target, transport configuration, firmware hash, and attachment evidence |
 | ESP32-C6 Endpoint A | Router-capable workload node for critical, telemetry, and forwarding-capable scenarios | Thread role/parent evidence, queue events, deadline outcomes, and boot identity |
-| ESP32-C6 Endpoint B | Low-power workload node for periodic, burst, and comparative power scenarios | Equivalent traffic evidence plus calibrated power-boundary notes when energy is measured |
+| ESP32-C6 Endpoint B | Second workload node for periodic, burst, and controlled link-context scenarios | Equivalent traffic evidence, actual role/parent state, and boot identity |
 | Laptop | Manifest authority, recorder, model, estimator, fidelity gate, analysis, and artifact storage | Frozen input manifest, run ID, source/dependency versions, raw trace, derived analysis, and terminal status |
 
-The SMP comparison is a genuine experiment, not a code-style claim. ESP-IDF uses an SMP-aware FreeRTOS variant on the ESP32-S3 and offers `CONFIG_FREERTOS_UNICORE` to force an S3 application onto Core 0. It also exposes `xTaskCreatePinnedToCore()` for explicit affinity. The paired experiment must keep the radio topology, workload, source revision, and other build inputs constant while collecting per-core and queue evidence. [ESP-IDF FreeRTOS SMP Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/system/freertos_idf.html)
+The retained SMP/unicore template is a genuine optional experiment, not a
+code-style claim or version-one dependency. ESP-IDF uses an SMP-aware FreeRTOS
+variant on the ESP32-S3 and offers `CONFIG_FREERTOS_UNICORE` to force an S3
+application onto Core 0. It also exposes `xTaskCreatePinnedToCore()` for explicit
+affinity. If admitted after the primary evidence chain is stable, the paired
+experiment must keep radio topology, workload, source revision, and other build
+inputs constant while collecting per-core and queue evidence. [ESP-IDF FreeRTOS
+SMP Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/system/freertos_idf.html)
 
 ## What The Finished Project Must Demonstrate
 
@@ -78,16 +85,21 @@ The target is not a polished dashboard. A fully working result must show a defen
 1. An endpoint can account for each generated item through a terminal outcome before networking is introduced via local EDF queue scheduling.
 2. The Thread topology is attached and its actual roles, parent relationships, firmware identities, and placement are recorded.
 3. Project frames, counters, timestamps, OpenThread MAC metrics, and policy epochs are recorded in an append-only run directory.
-4. A three-way model benchmark is scored on identical held-out horizons: naive moving-average baseline, network-only model ($M_{\text{network}} = f_\theta(X_{\text{network}})$), and cross-layer model ($M_{\text{cross}} = f_\theta(X_{\text{network}}, X_{\text{cross}})$) sharing the same underlying model family.
-5. A fidelity gate rejects control when observations are stale, model residuals/covariance exceed calibrated bounds, clock uncertainty is too high, or data leave the calibrated region.
-6. A finite policy command is accepted only when its run identity, strictly monotonic epoch, non-expired TTL, ChaCha20-Poly1305 AEAD authentication (RFC 8439), and local limits pass on the gateway and endpoint.
-7. The stale-observation path demonstrably returns the system to a local safe policy without relying on the host.
+4. A three-way model benchmark is scored on identical held-out horizons: naive moving-average baseline, network-only model ($M_{\text{network}} = f_\theta(X_{\text{network}})$), and cross-layer model ($M_{\text{cross}} = f_\theta(X_{\text{network}}, X_{\text{cross}})$), with the latter two sharing the same underlying model family; every prediction retains variant, revision, and horizon identity, and any optional feature-group ablation occurs only after that comparison is frozen.
+5. A fidelity gate rejects control when observations are stale, evidence is incomplete or unreconciled, model residuals/covariance exceed calibrated bounds, clock uncertainty is too high, or data leave the calibrated support region.
+6. One global finite policy command is accepted only when its ledger-reserved run identity, strictly monotonic durable epoch, non-expired TTL, ChaCha20-Poly1305 AEAD authentication (RFC 8439), and local limits pass on the gateway and endpoint; gateway restart requires a new run.
+7. The stale-observation path demonstrably returns the system to a local safe policy without relying on the host, and re-entry to `TRUSTED` requires a new sequence of clean evidence rather than a single favorable sample.
+
+The cross-layer variant is the only predeclared version-one actuation candidate.
+The naive and network-only models remain comparators; they are not selected as
+controllers after results are visible. If the cross-layer candidate fails the
+frozen shadow acceptance criteria, remote actuation stays disabled.
 
 Only after all seven links are evidenced may the repository report a closed-loop, hardware-in-the-loop digital twin. Before then, the honest labels are **physical testbed**, **offline model**, or **live digital shadow**, depending on the achieved data flow.
 
 ## Traffic And Safety Scope
 
-The system uses synthetic payloads so that scheduling and network behavior—not uncontrolled sensor variation—remain the primary experimental object. A BME280 may be used as a demonstrator input, but its readings are not required for the research claim.
+The system uses synthetic payloads so that scheduling and network behavior—not uncontrolled sensor variation—remain the primary experimental object. Environmental sensors are deferred because they are unnecessary for the research claim.
 
 | Traffic Class | Purpose | Handling Rule |
 |---|---|---|
@@ -100,18 +112,29 @@ All controlled disturbances are application-level and limited to workload timing
 
 ## Budget And Prerequisites
 
-The baseline purchase ceiling is **Rp 1,550,000** (with an extended contingency reserve up to **Rp 1,750,000**). The complete, costed ceiling is kept in [hardware/BOM.md](hardware/BOM.md), dated 29 August 2026. Its allocation covers four ESP32 boards, powered USB hub, cables, INA219 modules, optional BME280 sensor, wiring, and an 8-channel USB logic analyzer (Saleae clone) for UART Spinel protocol decoding and hardware trace verification.
+The version-one hard ceiling is **Rp 1,750,000**, including a protected
+**Rp 175,000 contingency**. The costed allocation is maintained in
+[hardware/BOM.md](hardware/BOM.md), dated 30 August 2026. It funds four boards,
+a genuinely powered four-port data hub, four verified data cables, wiring and
+isolation parts, a logic analyzer, consolidated shipping, and replacement
+reserve. INA219, INA226, BME280, passive RF sniffers, and extra perturbation
+nodes are not part of the current checkout.
 
 | Budget Decision | Rationale |
 |---|---|
-| Four development boards | One S3 gateway plus three matching C6 boards gives a dedicated RCP and two application endpoints without claiming a large mesh |
-| Powered USB hub and data cables | Stable power and serial access are part of reproducible embedded work, not accessories to omit from the budget |
-| Two INA219 modules | Enables comparative endpoint energy measurements after calibration; it is not a laboratory-grade power instrument |
-| USB logic analyzer (8ch) | Hardware verification of Spinel UART framing between RCP and S3, I2C sensor bus transactions, and GPIO task-switch timing |
-| GY-BME280 sensor | Provides a realistic demonstrator input but must not block the timing, network, or fidelity milestones |
-| Reserve | Absorbs a board failure, connector issue, or price change without forcing an undocumented architecture change |
+| Four development boards | One S3 gateway plus three matching C6 boards gives a dedicated RCP and two endpoints without claiming a large mesh |
+| Powered hub with included adapter | All four board ports are occupied; stable power and serial access are part of the experiment |
+| Four verified data cables and basic interconnect | Flashing, monitoring, UART crossover, reset recovery, and safe power wiring must not depend on unknown charge-only cables |
+| USB logic analyzer | Supports Spinel UART decoding and coarse GPIO correlation; it is not an RF observer or nanosecond timing instrument |
+| Protected reserve | Absorbs a board, cable, connector, shipping, or verified price failure without buying optional features first |
 
-An existing laptop and an existing private 2.4 GHz Wi-Fi access point are prerequisites, not hidden costs. Before purchasing, recheck the quoted board revision, availability, and price. If matching C6 boards cannot be obtained within the ceiling, stop and revise the architecture, manifests, and claims together; do not silently substitute a different mesh technology.
+An existing laptop, an additional laptop USB port for the analyzer, and an
+existing private 2.4 GHz Wi-Fi access point are prerequisites, not hidden costs.
+Before purchasing, recheck exact board revision, simultaneous C6 availability,
+hub adapter inclusion, and checkout price. If the required set cannot be
+obtained within the ceiling, revise hardware, firmware configuration, manifests,
+and claim boundaries together; do not silently substitute a different board or
+mesh technology.
 
 ## Repository Map
 
@@ -120,14 +143,24 @@ An existing laptop and an existing private 2.4 GHz Wi-Fi access point are prereq
 | [common/](common/) | Portable C contracts: protocol framing (`cldt_protocol.h`), ChaCha20-Poly1305 auth (`cldt_auth.h`), CRC-32C (`cldt_crc32c.h`), clock sync, event traces, metrics, status codes, and control profiles |
 | [host/](host/) | Host-side coordinator, manifest conversion, recorder, broker adapter, Kalman filter estimator (`kalman.h`), twin model, fidelity gate, policy interfaces, and reproduction scaffold (`analysis/reproduce.py`) |
 | [firmware/gateway/](firmware/gateway/) | ESP-IDF S3 gateway firmware: OpenThread MAC diagnostics (`thread_diagnostic.h`), RCP/Thread bridge, backhaul, provisioning, and edge policy guard |
-| [firmware/endpoint/](firmware/endpoint/) | ESP-IDF C6 endpoint firmware: EDF deadline queue (`deadline_queue.h`), workload generator, OpenThread transport, trace, and INA219 power probe (`power_probe.h`) |
+| [firmware/endpoint/](firmware/endpoint/) | ESP-IDF C6 endpoint firmware: EDF deadline queue (`deadline_queue.h`), workload generator, OpenThread transport, trace, and a deferred optional power-probe interface (`power_probe.h`) |
 | [experiments/](experiments/) | Eight strict JSON planning templates that conform to the repository schema |
 | [experiments/authoring/](experiments/authoring/) | Matching JSONC authoring companions with line comments and operator-focused completion guidance |
 | [schemas/](schemas/) | JSON Schema for the template-to-ready lifecycle; this is machine-facing and remains strict JSON |
 | [tests/](tests/) | Intentionally skipped C test skeletons that define the required verification surface |
 | [hardware/BOM.md](hardware/BOM.md) | Itemized cost ceiling, specifications, vendor links, pinout mappings, and power budget |
+| [FUTURE_PROJECTION.md](FUTURE_PROJECTION.md) | Non-normative, gated roadmap for work that is explicitly outside the current schedule and budget |
 
-There are intentionally only three primary public Markdown documents. This README sets scope and presentation; [DESIGN.md](DESIGN.md) defines ownership, data flow, and implementation boundaries; [EXPERIMENTS.md](EXPERIMENTS.md) defines how a future claim becomes admissible evidence. Supporting documents include [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Keeping them separate makes it much easier for a reviewer to distinguish intent, engineering design, and experimental proof.
+Four public Markdown documents define the current boundary. This README sets
+scope and presentation; [DESIGN.md](DESIGN.md) defines ownership, data flow, and
+implementation boundaries; [EXPERIMENTS.md](EXPERIMENTS.md) defines how a future
+claim becomes admissible evidence; and [hardware/BOM.md](hardware/BOM.md) is the
+version-one procurement contract. [FUTURE_PROJECTION.md](FUTURE_PROJECTION.md)
+is deliberately non-normative: describing a later phase does not authorize it.
+Supporting documents include [CONTRIBUTING.md](CONTRIBUTING.md) and
+[SECURITY.md](SECURITY.md). Keeping these roles separate lets a reviewer
+distinguish current intent, engineering design, experimental proof, procurement,
+and deferred ambition.
 
 ## Quick Start for Reviewers
 
@@ -139,7 +172,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-At the current scaffold stage, a successful build proves only that the declared C interfaces and translation units are consistent on that toolchain. The four test executables intentionally return the registered skip code because their assertions have not been implemented. The `cldt_host` executable also exits with failure after printing a scaffold notice; it is not yet a runnable experiment coordinator. A green build must therefore never be presented as a completed digital-twin result.
+At the current scaffold stage, a successful build proves only that the declared C interfaces and translation units are consistent on that toolchain. The seven test executables intentionally return the registered skip code because their assertions have not been implemented. The `cldt_host` and reproduction entry points also fail explicitly after printing scaffold notices; neither is a runnable experiment coordinator or analysis pipeline. A green build must therefore never be presented as a completed digital-twin result.
 
 Gateway and endpoint firmware are separate ESP-IDF projects. Install and export one pinned ESP-IDF release before using these entry points:
 
@@ -163,7 +196,7 @@ The experiment files use a two-stage contract:
 
 1. A `state: "template"` manifest records the question, known assumptions, and completion work while retaining pilot-dependent values as `null`.
 2. A `state: "ready"` manifest has every required experimental field, no remaining `_todo` entries, and passes the stricter branch of [schemas/experiment.schema.json](schemas/experiment.schema.json).
-3. The host must accept only a schema-valid `ready` manifest, freeze the original bytes, compute a documented digest, generate a run ID, and create a new evidence directory before opening any network connection.
+3. The host must accept only a schema-valid `ready` manifest, freeze the original bytes, compute a documented digest, reserve a nonzero cryptographically generated run ID in a durable global run ledger, generate a nonzero coordinator boot/session ID, and create a new evidence directory before opening any network connection. An actuated run also binds the reservation to the non-secret command-key identity; if ledger continuity is lost, that key must be rotated before actuation. Shadow-only runs require no endpoint command key.
 
 Strict JSON cannot contain comments. To provide direct, line-by-line authoring guidance without breaking validators, each strict template has a corresponding `.jsonc` file in [experiments/authoring/](experiments/authoring/). Edit the JSONC file while planning; copy only completed values into its strict `.json` counterpart; then validate the strict file before running. Comments and `_todo` prose may be more detailed in the authoring companion and are not required to be byte-identical. The strict `.json` artifact is the sole runtime authority for a physical run.
 
@@ -171,41 +204,50 @@ Strict JSON cannot contain comments. To provide direct, line-by-line authoring g
 
 The correct implementation order follows risk and evidence, not visual features:
 
-1. Make the portable contracts executable and write fixed protocol/metric tests.
-2. Prove local endpoint timer, queue, expiry, and counter reconciliation with networking disabled.
-3. Build the upstream RCP and border-router examples; record their exact revisions and hashes.
-4. Attach one endpoint and then two; preserve actual Thread topology evidence rather than assuming roles.
-5. Implement project frames, the gateway bridge, and an append-only host recorder.
-6. Operate the measured physical system as a digital shadow with no remote actuation.
-7. Fit and score network-only and cross-layer models on separated calibration and held-out conditions.
-8. Implement the fail-closed fidelity gate and one bounded, expiring bulk-rate action.
-9. Verify stale-observation fallback, restart/replay rejection, and finally the optional SMP and power comparisons.
+1. Freeze one wire/authentication contract, correct the board pin map, pin one
+   ESP-IDF revision, and replace skipped tests with fixed vectors incrementally.
+2. In parallel with local endpoint accounting, bring up the unmodified upstream
+   RCP and border-router examples on the actual boards. Record revisions and
+   binary hashes.
+3. Require repeatable cold boot and sustained UDP with one endpoint before
+   attaching the second or adding project protocol behavior.
+4. Implement project frames, bounded gateway queues, an append-only recorder,
+   item-level audit, and aggregate reconciliation.
+5. Operate the measured system as a digital shadow with no remote actuation.
+6. Freeze and score naive, network-only, and cross-layer models on identical
+   held-out horizons; perform feature ablation only after the primary comparison.
+7. Implement the four-state fail-closed gate, calibrated-region check,
+   observation-integrity check, and one expiring bulk-rate-reduction action.
+8. Verify stale-observation fallback, evidence-based requalification, and
+   restart/replay rejection. Attempt physical context-shift depth only if every
+   earlier gate is green.
 
-Node-RED, Blynk, dashboards, extra sensors, and visual polish are deliberately late. They are useful for demonstration only after the evidence path, command rejection path, and raw data integrity are working.
+Dashboards, extra sensors, SMP, power experiments, passive RF capture, extra
+nodes, SPI migration, and multi-action policy search are outside the current
+critical path. Their admission rules are recorded in
+[FUTURE_PROJECTION.md](FUTURE_PROJECTION.md).
 
-## Six-And-A-Half-Week Delivery Plan
+## Six-Week Delivery Plan
 
-The available window runs from mid-September to 1 November. It is feasible only if each period has a hard evidence gate and optional work is cut when a prerequisite slips.
+The schedule is deliberately gated because hardware bring-up, soak time, and
+independent physical repetitions are serial constraints that cannot be compressed
+without weakening the evidence.
 
-```mermaid
-gantt
-    title Evidence-First Delivery Window
-    dateFormat  YYYY-MM-DD
-    axisFormat  %d %b
-    section Foundations
-    Contracts and local RTOS accounting       :crit, 2026-09-15, 7d
-    section Physical System
-    RCP, border router, and two endpoints     :crit, 2026-09-22, 7d
-    Project frames and append-only recorder   :crit, 2026-09-29, 7d
-    section Model And Safety
-    Shadow model and held-out prediction      :crit, 2026-10-06, 7d
-    Fidelity gate and stale-data fallback     :crit, 2026-10-13, 7d
-    section Evidence
-    SMP or energy extension, only if ready    :2026-10-20, 7d
-    Repetition, evidence freeze, presentation :crit, 2026-10-27, 6d
-```
+| Time | Required Outcome | Cut Rule |
+|---|---|---|
+| Days 1–3 | Scope, pins, protocol/auth contract, toolchain, and version-one BOM frozen | No architectural additions after this point |
+| Week 1 | Host contracts build; first fixed vectors replace skips; upstream RCP and border-router images build and flash | Do not write a custom radio path before the upstream path works |
+| By Day 10 | Repeatable cold boot plus sustained S3/RCP/one-endpoint Thread UDP | If absent, drop model/control extensions and preserve a local-accounting result |
+| Week 2 | One-endpoint runtime and accounting are stable; second endpoint attaches only after the soak gate | Do not hide resets, drops, or role changes |
+| Week 3 | Project frames, recorder, raw evidence, lifecycle audit, and aggregate reconciliation work end to end | Without reconciled evidence, make no model claim |
+| Week 4 | Naive, network-only, and cross-layer shadow models are frozen and scored on held-out load | Without a frozen shadow result, skip physical-shift depth and actuation |
+| Week 5 | Four-state gate, one bounded action, stale fallback, and restart/replay rejection produce audit traces | Keep actuation disabled if any rejection/fallback invariant is unproven |
+| Week 6 | Feature freeze, final repetitions, automated reproduction, limitations, and presentation | Fix evidence defects only; add no features |
 
-The gantt dates are a planning visualization, not a promise that every optional experiment will be completed. The non-negotiable deliverable is a reproducible primary chain: local accounting, stable physical baseline, held-out shadow-model score, and stale-observation fallback. If time slips, defer the dashboard, topology-shift presentation, power-policy extension, and SMP comparison before weakening counter reconciliation, raw evidence capture, or negative-case testing.
+The non-negotiable deliverable is the reproducible chain from frozen manifest to
+physical events, reconciled evidence, shadow-model score, and fail-closed safety
+behavior. A context-shift envelope/ablation result is valuable conditional depth;
+SMP and energy are deferred before any primary evidence requirement is weakened.
 
 ## Completion Standard
 
