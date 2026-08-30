@@ -231,18 +231,36 @@ critical path. Their admission rules are recorded in
 
 The schedule is deliberately gated because hardware bring-up, soak time, and
 independent physical repetitions are serial constraints that cannot be compressed
-without weakening the evidence.
+without weakening the evidence. The calendar view is retained so overlap,
+sequence, and the Day-10 decision point remain visible at a glance.
 
-| Time | Required Outcome | Cut Rule |
-|---|---|---|
-| Days 1–3 | Scope, pins, protocol/auth contract, toolchain, and version-one BOM frozen | No architectural additions after this point |
-| Week 1 | Host contracts build; first fixed vectors replace skips; upstream RCP and border-router images build and flash | Do not write a custom radio path before the upstream path works |
-| By Day 10 | Repeatable cold boot plus sustained S3/RCP/one-endpoint Thread UDP | If absent, drop model/control extensions and preserve a local-accounting result |
-| Week 2 | One-endpoint runtime and accounting are stable; second endpoint attaches only after the soak gate | Do not hide resets, drops, or role changes |
-| Week 3 | Project frames, recorder, raw evidence, lifecycle audit, and aggregate reconciliation work end to end | Without reconciled evidence, make no model claim |
-| Week 4 | Naive, network-only, and cross-layer shadow models are frozen and scored on held-out load | Without a frozen shadow result, skip physical-shift depth and actuation |
-| Week 5 | Four-state gate, one bounded action, stale fallback, and restart/replay rejection produce audit traces | Keep actuation disabled if any rejection/fallback invariant is unproven |
-| Week 6 | Feature freeze, final repetitions, automated reproduction, limitations, and presentation | Fix evidence defects only; add no features |
+```mermaid
+gantt
+    title Six-Week Evidence-First Delivery Window
+    dateFormat  YYYY-MM-DD
+    axisFormat  %d %b
+    tickInterval 1week
+    section Scope Freeze
+    Pins, protocol, toolchain, and BOM        :crit, scope, 2026-09-15, 3d
+    section Foundations
+    Host contracts and upstream images       :crit, foundations, 2026-09-15, 7d
+    Day-10 one-endpoint Thread UDP gate       :milestone, udp_gate, 2026-09-24, 0d
+    section Physical Evidence
+    Local accounting and physical baseline   :crit, physical, 2026-09-22, 7d
+    Recorder, lifecycle audit, reconciliation :crit, recorder, 2026-09-29, 7d
+    section Model And Safety
+    Frozen three-model shadow comparison     :crit, shadow, 2026-10-06, 7d
+    Gate, fallback, and restart/replay safety :crit, safety, 2026-10-13, 7d
+    section Freeze And Communicate
+    Repetition, reproduction, and limitations :crit, final, 2026-10-20, 7d
+```
+
+The dates are a planning visualization, not permission to advance when an
+evidence gate is red. By Day 10, absence of repeatable one-endpoint Thread UDP
+cuts model/control extensions. Without reconciled Week-3 evidence, make no model
+claim. Without a frozen Week-4 shadow result, skip physical-context depth and
+actuation. Any unproven Week-5 rejection or fallback invariant keeps actuation
+disabled. Week 6 fixes evidence defects only and adds no features.
 
 The non-negotiable deliverable is the reproducible chain from frozen manifest to
 physical events, reconciled evidence, shadow-model score, and fail-closed safety
