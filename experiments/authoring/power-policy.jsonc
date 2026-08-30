@@ -1,16 +1,16 @@
 {
-  // This authoring copy plans a comparative energy experiment. INA219 output is not automatically metrology-grade.
+  // This authoring copy plans a deferred comparative energy experiment. No current sensor is automatically metrology-grade.
   "schema_version": "2.0",
   "state": "template",
   "experiment_id": "power-policy",
-  "title": "Energy-Aware Policy Check",
+  "title": "Deferred Energy And Service Trade-Off",
   "purpose": {
     "question": "Can a bounded low-power endpoint profile reduce measured energy without violating critical service?",
     "comparison": "Always-on and low-power endpoint profiles under the same measured traffic block.",
     "primary_metric": "Energy per successfully delivered critical packet, reported with service quality."
   },
   "setup": {
-    // Identify measured endpoint, INA219 sensor ID, rail boundary, I2C setup, shunt value, and calibration record.
+    // Identify measured endpoint, admitted instrument, rail boundary, interface/setup, shunt value where applicable, and calibration record.
     "nodes": null,
     "thread_channel": null,
     "placement": null,

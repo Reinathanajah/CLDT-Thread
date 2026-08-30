@@ -2,7 +2,7 @@
   "schema_version": "2.0",
   "state": "template",
   "experiment_id": "power-policy",
-  "title": "Energy-Aware Policy Check",
+  "title": "Deferred Energy And Service Trade-Off",
   "purpose": {
     "question": "Can a bounded low-power endpoint profile reduce measured energy without violating critical service?",
     "comparison": "Always-on and low-power endpoint profiles under the same measured traffic block.",
@@ -30,7 +30,7 @@
     {
       "path": "/setup",
       "action": "Define a calibrated endpoint power path before comparing profiles.",
-      "method": "Choose the measured C6 rail, INA219 module, I2C configuration, shunt value, sample interval, and inclusion boundary for board regulator, USB serial, LEDs, and sensor. Compare the module with a trusted meter or controlled load where possible, and record limitations if only relative readings are defensible.",
+      "method": "Select a suitable instrument only in a future admitted phase, then freeze the measured C6 rail, I2C or profiler configuration, shunt value where applicable, sample interval, and inclusion boundary for board regulator, USB serial, LEDs, and instrument overhead. Compare against a trusted meter or controlled load and withhold the claim when resolution is inadequate.",
       "done_when": "versions.json contains a calibration identifier and the operator note states exactly what energy boundary is being measured."
     },
     {

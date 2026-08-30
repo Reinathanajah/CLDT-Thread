@@ -52,7 +52,7 @@
     "negative_case": null
   },
   "evidence": {
-    // Require newest observation, gate transition, command audit, fallback record, counters, and recovery evidence.
+    // Require newest observation, gate transition, command audit, fallback record, counters, and every recovery/requalification window.
     "required_artifacts": null,
     "operator_notes_required": null,
     "topology_photo_required": null
@@ -74,7 +74,7 @@
       "path": "/treatment",
       "action": "Enable only a finite bounded bulk action.",
       "method": "Require gateway and endpoint acknowledgements for accept, reject, expiry, and fallback.",
-      "done_when": "The evidence can reconstruct the entire withdrawal path."
+      "done_when": "The evidence can reconstruct withdrawal, ABSTAIN-to-OBSERVE recovery, and either full requalification or continued abstention."
     }
   ]
 }

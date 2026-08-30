@@ -2,11 +2,11 @@
   "schema_version": "2.0",
   "state": "template",
   "experiment_id": "topology-shift",
-  "title": "Controlled Topology Shift",
+  "title": "Controlled Placement And Link-Context Shift",
   "purpose": {
-    "question": "Does the model detect and report loss of fidelity when one physical endpoint placement changes?",
-    "comparison": "Prediction residual and gate state before versus after a preregistered endpoint placement change.",
-    "primary_metric": "Time to gate abstention or documented retained fidelity after the shift."
+    "question": "Does a frozen calibration-envelope-aware gate avoid false trust when one endpoint enters a held-out physical context?",
+    "comparison": "Always-trust, residual/freshness-only, and calibrated-region-aware decisions on identical predeclared horizons before and after one placement change.",
+    "primary_metric": "False-trust rate and trusted-horizon fraction, with abstention and requalification latency."
   },
   "setup": {
     "nodes": null,
@@ -30,7 +30,7 @@
     {
       "path": "/setup",
       "action": "Define two repeatable endpoint locations before collecting a topology-shift trace.",
-      "method": "Mark the before and after position of one chosen endpoint with distance, height, orientation, obstacles, cable routing, and photographs. Freeze gateway, RCP, and other endpoint positions; record actual Thread role, parent, partition, and link evidence at both positions.",
+      "method": "Mark the before and after position of one chosen endpoint with distance, height, orientation, obstacles, cable routing, and photographs. Freeze gateway, RCP, and other endpoint positions; record actual Thread role, RLOC16, parent, partition, RSSI/link quality, and available MAC/MLE evidence at both positions. Call it a topology shift only if topology evidence actually changes.",
       "done_when": "A second operator can recreate both positions and distinguish a planned shift from accidental movement."
     },
     {
@@ -42,8 +42,8 @@
     {
       "path": "/treatment",
       "action": "Predeclare what counts as a correct fidelity response.",
-      "method": "Run as a host-model shadow with remote actuation disabled unless the primary safety chain is already proven. Freeze the calibrated gate limits, service floor, and evidence list containing before/after topology snapshots, residual/gate report, raw events, and operator notes.",
-      "done_when": "The report can honestly conclude either that the gate abstained or that fidelity remained within predeclared bounds; neither outcome is chosen after seeing the graph."
+      "method": "Run as a host-model shadow with remote actuation disabled unless the primary safety chain is already proven. Freeze the support-envelope rule, gate limits, minimum useful in-domain trust fraction, error tolerance, service floor, and evidence list before target runs.",
+      "done_when": "The report includes false trust, trusted-horizon fraction, selective error, abstention latency, and requalification latency and can honestly conclude either retained fidelity or abstention under the frozen rules."
     }
   ]
 }

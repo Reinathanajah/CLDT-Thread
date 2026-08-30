@@ -5,8 +5,8 @@
   "title": "Held-Out Load-Step Prediction",
   "purpose": {
     "question": "Can a cross-layer model predict critical deadline degradation when a known bulk load step is introduced?",
-    "comparison": "Network-only and cross-layer predictions on a load pattern not used to tune the model.",
-    "primary_metric": "Held-out error of predicted critical on-time delivery ratio."
+    "comparison": "Naive, network-only, and cross-layer predictions on identical horizons from a load pattern not used to tune the models or gate.",
+    "primary_metric": "Held-out P95 prediction error with run-aware uncertainty; gate trust metrics remain secondary."
   },
   "setup": {
     "nodes": null,
@@ -42,8 +42,8 @@
     {
       "path": "/treatment",
       "action": "Keep this experiment as a shadow-model prediction test, not a disguised controller test.",
-      "method": "Set prediction mode, enable the host model, disable remote actuation, choose a critical service floor from the baseline, and require raw traces plus a prediction report that identifies calibration data, model revision, prediction horizon, and both model feature sets.",
-      "done_when": "No held-out observation is used to tune model parameters and the report can score network-only and cross-layer predictions on exactly the same horizons."
+      "method": "Set prediction mode, enable the host model, disable remote actuation, choose a critical service floor from the baseline, and require raw traces plus a prediction report that identifies calibration data, model revision, prediction horizon, all three models, calibrated-region status, and observation-integrity status.",
+      "done_when": "No held-out observation is used to tune model parameters or gate thresholds and the report scores all models on exactly the same horizons."
     }
   ]
 }

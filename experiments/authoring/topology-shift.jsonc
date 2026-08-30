@@ -3,11 +3,11 @@
   "schema_version": "2.0",
   "state": "template",
   "experiment_id": "topology-shift",
-  "title": "Controlled Topology Shift",
+  "title": "Controlled Placement And Link-Context Shift",
   "purpose": {
-    "question": "Does the model detect and report loss of fidelity when one physical endpoint placement changes?",
-    "comparison": "Prediction residual and gate state before versus after a preregistered endpoint placement change.",
-    "primary_metric": "Time to gate abstention or documented retained fidelity after the shift."
+    "question": "Does a frozen calibration-envelope-aware gate avoid false trust when one endpoint enters a held-out physical context?",
+    "comparison": "Always-trust, residual/freshness-only, and calibrated-region-aware decisions on identical predeclared horizons before and after one placement change.",
+    "primary_metric": "False-trust rate and trusted-horizon fraction, with abstention and requalification latency."
   },
   "setup": {
     // Describe reproducible before/after locations for one endpoint: distance, height, orientation, obstacles, cables, and photos.
@@ -50,7 +50,7 @@
     "negative_case": null
   },
   "evidence": {
-    // Require before/after photos, placement measurements, Thread role/parent snapshots, residual/gate report, and raw events.
+    // Require before/after photos, placement measurements, role/RLOC16/parent/partition/link diagnostics, per-horizon support/integrity state, gate report, and raw events.
     "required_artifacts": null,
     "operator_notes_required": null,
     "topology_photo_required": null
@@ -59,7 +59,7 @@
     {
       "path": "/setup",
       "action": "Make both physical positions reproducible.",
-      "method": "Mark and photograph locations; freeze gateway/RCP/other endpoint positions and record role/parent/link state at each position.",
+      "method": "Mark and photograph locations; freeze gateway/RCP/other endpoint positions and record role, RLOC16, parent, partition, and link state at each position. Use topology-shift wording only if those observations support it.",
       "done_when": "A second operator can recreate both configurations."
     },
     {
@@ -71,7 +71,7 @@
     {
       "path": "/treatment",
       "action": "Predeclare acceptable fidelity outcomes.",
-      "method": "Freeze the gate/calibration limits and permit a conclusion of either retained fidelity or abstention.",
+      "method": "Freeze the support envelope, gate limits, error tolerance, and minimum useful in-domain trust fraction; permit a conclusion of either retained fidelity or abstention.",
       "done_when": "The graph cannot choose the rule after the result is known."
     }
   ]

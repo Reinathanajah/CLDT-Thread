@@ -43,7 +43,7 @@
       "path": "/treatment",
       "action": "Enable only one finite, locally bounded action before proving its withdrawal.",
       "method": "Use bulk-rate reduction only, turn on the host model and remote actuation, set a finite command TTL in the control profile, keep a compiled safe static policy, and require gateway and endpoint acknowledgements for acceptance, rejection, expiry, and fallback.",
-      "done_when": "The evidence includes last accepted observation, gate transition, command or expiry decision, local fallback, post-fallback counters, and a critical-service floor that the fallback must preserve."
+      "done_when": "The evidence includes last accepted observation, gate transition, command or expiry decision, local fallback, restored observations, the full requalification-window sequence, post-fallback counters, and a critical-service floor that the fallback must preserve."
     }
   ]
 }

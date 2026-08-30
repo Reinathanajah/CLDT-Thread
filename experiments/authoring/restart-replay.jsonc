@@ -6,12 +6,12 @@
   "experiment_id": "restart-replay-safety",
   "title": "Restart And Command Replay Safety",
   "purpose": {
-    "question": "Can a restarting endpoint reject stale or replayed policy epochs and resume only the current safe configuration?",
-    "comparison": "Command acceptance before restart, immediately after restart, and after fresh synchronization.",
+    "question": "Can a restarting endpoint reload durable replay state, reject stale or replayed policy epochs, and remain safe when that state is unavailable?",
+    "comparison": "Command acceptance before restart, rejection after restart with valid durable state, and fail-safe behavior with missing or corrupt state.",
     "primary_metric": "Number of invalid policy applications after the deliberate restart."
   },
   "setup": {
-    // Use a topology where one normal authenticated finite-TTL command has already been accepted and acknowledged.
+    // Use a topology where one global authenticated finite-TTL command was durably recorded before apply and acknowledged.
     "nodes": null,
     "thread_channel": null,
     "placement": null,
@@ -53,7 +53,7 @@
     "negative_case": null
   },
   "evidence": {
-    // Require command audit with active run, old/new boot IDs, epoch, TTL, and per-attempt reason.
+    // Require command audit with active run, coordinator plus old/new endpoint boot IDs, durable replay state, epoch, TTL, and per-attempt reason.
     "required_artifacts": null,
     "operator_notes_required": null,
     "topology_photo_required": null
@@ -61,21 +61,21 @@
   "_todo": [
     {
       "path": "/setup",
-      "action": "Establish normal command-path evidence before injecting a restart.",
-      "method": "Archive an accepted current command, acknowledgement, active run identity, endpoint boot ID, epoch, and TTL.",
-      "done_when": "There is a pre-restart baseline against which rejection behavior can be interpreted."
+      "action": "Establish normal global-command and persist-before-apply evidence before injecting a restart.",
+      "method": "Commission a unique run and archive an accepted current command, replay-record commit, acknowledgement, endpoint boot ID, epoch, and TTL.",
+      "done_when": "There is a pre-restart command and durable-state baseline against which rejection behavior can be interpreted."
     },
     {
       "path": "/scenario",
       "action": "Define one restart and a finite set of replay attempts.",
-      "method": "Restart the selected endpoint, then submit old-epoch, expired, and wrong-run commands through the normal gateway path.",
-      "done_when": "Operator notes list exact invalid inputs and expected rejection reasons."
+      "method": "Restart the selected endpoint, verify replay-record reload, then submit old-epoch, expired, wrong-run, wrong-authority-boot, corrupted-tag, and exact replay commands through the normal gateway path. Separately use a missing-or-corrupt-record fixture.",
+      "done_when": "Operator notes list durable-state fixtures, exact invalid inputs, and expected rejection reasons."
     },
     {
       "path": "/acceptance",
       "action": "Predeclare zero invalid applications.",
-      "method": "Require local fallback until fresh synchronization and retain complete command/audit evidence.",
-      "done_when": "A reviewer can reconstruct every attempted command."
+      "method": "Require persist-before-apply, local fallback when replay state is unavailable, explicit new-run commissioning, and complete command/state evidence.",
+      "done_when": "A reviewer can reconstruct every attempted command and durable-state transition."
     }
   ]
 }

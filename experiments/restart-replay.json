@@ -4,8 +4,8 @@
   "experiment_id": "restart-replay-safety",
   "title": "Restart And Command Replay Safety",
   "purpose": {
-    "question": "Can a restarting endpoint reject stale or replayed policy epochs and resume only the current safe configuration?",
-    "comparison": "Command acceptance before restart, immediately after restart, and after fresh synchronization.",
+    "question": "Can a restarting endpoint reload durable replay state, reject stale or replayed policy epochs, and remain safe when that state is unavailable?",
+    "comparison": "Command acceptance before restart, rejection after restart with valid durable state, and fail-safe behavior with missing or corrupt state.",
     "primary_metric": "Number of invalid policy applications after the deliberate restart."
   },
   "setup": {
@@ -29,21 +29,21 @@
   "_todo": [
     {
       "path": "/setup",
-      "action": "Prove the normal command path and boot identity observability before injecting a restart.",
-      "method": "Reuse a valid safety-capable Thread topology, assign an endpoint target, record how its boot ID changes after reset, and verify that one current authenticated finite-TTL policy can be accepted and acknowledged under normal conditions.",
-      "done_when": "A pre-restart trace contains active run identity, endpoint boot ID, accepted epoch, TTL, and acknowledgement reason."
+      "action": "Prove the normal global-command path, durable replay record, and boot identity observability before injecting a restart.",
+      "method": "Reuse a valid safety-capable Thread topology, select the endpoint to restart, commission a unique run, and verify that one current authenticated finite-TTL global policy is durably recorded before it is applied and acknowledged.",
+      "done_when": "A pre-restart trace contains active run identity, coordinator and endpoint boot IDs, accepted epoch, replay-record commit result, TTL, and acknowledgement reason."
     },
     {
       "path": "/scenario",
       "action": "Run one controlled restart and explicitly enumerate the replay attempts that follow it.",
-      "method": "Choose endpoint_restart time after stable operation, capture duration through reattachment, then send the ordinary gateway path an old epoch, an expired command, and a wrong-run command. Never bypass authentication or call private apply functions directly.",
-      "done_when": "The ready file fixes restart time and target, while operator notes list the exact invalid command cases and expected reject reasons."
+      "method": "Choose endpoint_restart time after stable operation, capture duration through reattachment, verify the durable record reload, then send the ordinary gateway path an old epoch, an expired command, a wrong-run command, a wrong-authority-boot command, a corrupted tag, and an exact replay. Use a separate missing-or-corrupt-record fixture; never bypass authentication or call private apply functions directly.",
+      "done_when": "The ready file fixes restart time and target, while operator notes list the replay-record fixtures, exact invalid command cases, and expected reject reasons."
     },
     {
       "path": "/acceptance",
       "action": "Make zero invalid policy applications the safety outcome and preserve complete command evidence.",
-      "method": "Set safety treatment, select only the bounded bulk-rate action, require the endpoint to fall back until fresh synchronization, preserve critical service floor and counter reconciliation, and require command-audit, raw events, final counters, versions, and run status artifacts.",
-      "done_when": "A reviewer can reconstruct every attempted command and confirm that stale, replayed, or wrong-run input changed no endpoint policy."
+      "method": "Set safety treatment, select only the bounded bulk-rate action, require persist-before-apply, require the endpoint to keep its safe policy when replay state is unavailable, preserve critical service floor and counter reconciliation, and require command-audit, replay-state, raw-event, final-counter, version, and run-status artifacts.",
+      "done_when": "A reviewer can reconstruct every attempted command and durable-state transition, confirm that stale, replayed, or wrong-run input changed no endpoint policy, and confirm that missing replay state required a new run."
     }
   ]
 }
