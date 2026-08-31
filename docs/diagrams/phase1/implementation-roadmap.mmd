@@ -1,0 +1,42 @@
+flowchart LR
+    subgraph freeze["Days 1–3 · Contract freeze"]
+        bom["hardware/BOM.md<br/>board, pin map, anggaran"]
+        wire["cldt_types.h + cldt_protocol.h<br/>wire layout dan semantics"]
+        auth["cldt_auth.h + SECURITY.md<br/>auth coverage dan key lifecycle"]
+        toolchain["ESP-IDF checkout<br/>commit, sdkconfig, binary digest"]
+    end
+
+    subgraph portable["Portable foundation"]
+        build["CMakeLists.txt<br/>common/CMakeLists.txt<br/>tests/CMakeLists.txt"]
+        crc["cldt_crc32c.h + cldt_crc32c.c<br/>CRC-32C/Castagnoli contract"]
+        vector["test_crc32c.c<br/>known-answer + incremental vectors"]
+        ci["scaffold-validation.yml<br/>build, CTest, manifest syntax"]
+        build --> crc --> vector --> ci
+    end
+
+    subgraph physical["Upstream physical path"]
+        rcp["ESP-IDF ot_rcp<br/>C6 RCP build + flash"]
+        br["ESP-IDF ot_br<br/>S3 host + UART Spinel"]
+        cli["ESP-IDF ot_cli<br/>C6 endpoint A attach"]
+        udp["Thread UDP<br/>bidirectional datagram test"]
+        rcp --> br --> cli --> udp
+    end
+
+    freeze --> portable
+    bom --> rcp
+    toolchain --> rcp
+    toolchain --> br
+    toolchain --> cli
+    portable --> gate{"Day-10 gate"}
+    udp --> gate
+    gate -->|"cold boot repeatable + sustained UDP"| week2["Masuk Week 2<br/>local accounting, lalu endpoint B"]
+    gate -->|"belum repeatable"| cut["Pertahankan satu endpoint<br/>potong model dan control depth"]
+
+    classDef contract fill:#312e81,stroke:#a78bfa,color:#f5f3ff;
+    classDef code fill:#0c4a6e,stroke:#38bdf8,color:#e0f2fe;
+    classDef hardware fill:#134e4a,stroke:#2dd4bf,color:#ccfbf1;
+    classDef decision fill:#713f12,stroke:#fbbf24,color:#fef3c7;
+    class wire,auth contract;
+    class build,crc,vector,ci code;
+    class bom,toolchain,rcp,br,cli,udp,week2 hardware;
+    class gate,cut decision;

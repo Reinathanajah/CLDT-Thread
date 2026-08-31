@@ -1,0 +1,55 @@
+flowchart TB
+    entry{"Verdict Day 10"}
+
+    subgraph contracts["Contract local accounting"]
+        types["cldt_types.h<br/>event dan terminal semantics"]
+        traceh["cldt_event_trace.h<br/>ring ownership + loss policy"]
+        metricsh["cldt_metrics.h<br/>lifecycle counters + reconciliation"]
+        queueh["deadline_queue.h<br/>slot states + EDF ownership"]
+        workloadh["workload.h<br/>stream release contract"]
+        runtimeh["endpoint_runtime.h<br/>static runtime ownership"]
+        types --> traceh --> metricsh
+        types --> queueh --> workloadh --> runtimeh
+    end
+
+    subgraph implementation["Source dan test yang ditutup"]
+        tracec["cldt_event_trace.c<br/>init, push, snapshot"] --> tracet["test_event_trace.c"]
+        metricsc["cldt_metrics.c<br/>observe, audit, reconcile"] --> metricst["test_metrics.c"]
+        queuec["deadline_queue.c<br/>acquire, commit, pop, release, expire"]
+        workloadc["workload.c<br/>configure, start, timer, stop"]
+        runtimec["endpoint_runtime.c<br/>local-only init, tasks, drain"]
+        queuec --> workloadc --> runtimec
+    end
+
+    subgraph buildmanifest["Build dan manifest"]
+        build["endpoint CMakeLists.txt<br/>main/CMakeLists.txt<br/>Kconfig.projbuild<br/>sdkconfig.defaults"]
+        jsonc["local-rtos-baseline.jsonc<br/>pilot decisions + TODO values"]
+        strict["local-rtos-baseline.json<br/>ready only after all fields resolve"]
+        schema["experiment.schema.json<br/>template/ready admission"]
+        jsonc --> strict --> schema
+    end
+
+    subgraph evidence["Local evidence closure"]
+        pilots["critical-only<br/>bulk-only<br/>critical + bulk pilots"]
+        audit["one release → one local terminal<br/>queue high-water + trace loss visible"]
+        localgate{"local accounting reconciles?"}
+        pilots --> audit --> localgate
+    end
+
+    entry -->|"PASS"| contracts
+    entry -->|"FAIL / ambiguous"| localonly["Local path may continue<br/>network expansion stays blocked"]
+    contracts --> implementation --> build --> pilots
+    build --> jsonc
+    localonly --> contracts
+    localgate -->|"PASS and one-endpoint soak remains stable"| endpointb["Flash upstream ot_cli on endpoint B<br/>attach, record role/parent/partition"]
+    localgate -->|"FAIL"| repair["Keep Thread off<br/>repair lifecycle/accounting"]
+    endpointb --> week3["Week 3 entry<br/>project frames + bounded evidence path"]
+
+    classDef contract fill:#312e81,stroke:#a78bfa,color:#f5f3ff;
+    classDef code fill:#0c4a6e,stroke:#38bdf8,color:#e0f2fe;
+    classDef evidence fill:#14532d,stroke:#22c55e,color:#dcfce7;
+    classDef decision fill:#713f12,stroke:#fbbf24,color:#fef3c7;
+    class types,traceh,metricsh,queueh,workloadh,runtimeh contract;
+    class tracec,tracet,metricsc,metricst,queuec,workloadc,runtimec,build code;
+    class jsonc,strict,schema,pilots,audit,endpointb,week3 evidence;
+    class entry,localgate,localonly,repair decision;

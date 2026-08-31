@@ -1,0 +1,69 @@
+flowchart LR
+    entry{"Week-2 entry gate"}
+
+    subgraph endpoint["Endpoint project path"]
+        runtime["endpoint_runtime.c<br/>dequeue + encode + terminal ownership"]
+        clock["cldt_clock_sync.c<br/>synthetic test; physical exchange undefined"]
+        codec["cldt_protocol.c<br/>encoded_size + encode + decode"]
+        protocoltest["test_protocol.c<br/>fixed bytes + mutation cases"]
+        transport["thread_transport.c<br/>one frame = one UDP datagram"]
+        runtime --> codec --> transport
+        runtime -.-> clock -.-> codec
+        codec --> protocoltest
+    end
+
+    subgraph gateway["ESP32-S3 gateway"]
+        provisioning["gateway_provisioning.c<br/>load credentials; observation-only"]
+        guard["policy_guard.c<br/>safe baseline; remote disabled"]
+        bridge["thread_bridge.c<br/>copy RX datagram under OT lock"]
+        rxq["gateway_runtime.thread_rx_queue<br/>bounded ingress ownership"]
+        diagnostic["thread_diagnostic.c<br/>role, parent, partition, counters"]
+        obsq["gateway_runtime.observation_queue<br/>bounded publish ownership"]
+        backhaul["backhaul.c<br/>Wi-Fi + private broker publish"]
+        provisioning --> guard --> rxq
+        provisioning --> bridge --> rxq --> obsq --> backhaul
+        diagnostic --> obsq
+    end
+
+    subgraph host["Host admission dan raw recording"]
+        manifest["baseline.jsonc → baseline.json<br/>schema-ready manifest"]
+        config["experiment_config.c<br/>parse + cross-field admission"]
+        profile["cldt_control_profile.c<br/>intrinsic validation + registry identity"]
+        admission{"config + profile admitted"}
+        broker["broker_io.c<br/>bounded poll + callback"]
+        recorder["run_recorder.c<br/>manifest + versions + events.ndjson"]
+        coordinator["coordinator.c + main.c<br/>baseline event loop; model disabled"]
+        manifest --> config --> admission --> coordinator
+        manifest --> profile -->|"real document + digest"| admission
+        profile -->|"registry absent"| profileblocked["Keep manifest template<br/>no baseline claim"]
+        broker --> recorder --> coordinator
+    end
+
+    subgraph replay["Evidence closure"]
+        lifecycle["reproduce.py Week-3 subset<br/>item lifecycle audit"]
+        aggregate["cldt_metrics.c<br/>per-class aggregate reconciliation"]
+        closure{"Repeated baseline reconciles?"}
+        lifecycle --> closure
+        aggregate --> closure
+    end
+
+    entry -->|"local accounting PASS + two endpoints attached"| runtime
+    entry -->|"not ready"| repair["Repair Week-2 accounting/topology<br/>no baseline claim"]
+    transport -->|"Thread UDP"| bridge
+    profile --> guard
+    backhaul -->|"raw broker bytes"| broker
+    coordinator --> lifecycle
+    coordinator --> aggregate
+    closure -->|"PASS"| week4["Week 4 may begin<br/>shadow-model comparison"]
+    closure -->|"FAIL / interrupted"| preserve["Preserve raw run<br/>mark invalid or interrupted; repair evidence path"]
+
+    classDef endpoint fill:#14532d,stroke:#22c55e,color:#dcfce7;
+    classDef gateway fill:#0c4a6e,stroke:#22d3ee,color:#cffafe;
+    classDef host fill:#312e81,stroke:#a78bfa,color:#f5f3ff;
+    classDef evidence fill:#134e4a,stroke:#34d399,color:#d1fae5;
+    classDef decision fill:#713f12,stroke:#fbbf24,color:#fef3c7;
+    class runtime,clock,codec,protocoltest,transport endpoint;
+    class provisioning,guard,bridge,rxq,diagnostic,obsq,backhaul gateway;
+    class manifest,config,profile,broker,recorder,coordinator host;
+    class lifecycle,aggregate,week4 evidence;
+    class entry,admission,closure,repair,preserve,profileblocked decision;
