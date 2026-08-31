@@ -1,0 +1,31 @@
+gantt
+    title Week 5 Safety Closure — 13–19 October 2026
+    dateFormat  YYYY-MM-DD
+    axisFormat  %d %b
+    tickInterval 1day
+
+    section Admission
+    Frozen Week-4 result and physical-control gate       :crit, entry, 2026-10-13, 1d
+
+    section Contracts and Host
+    Status, types, profile, auth, and policy codec       :crit, shared, 2026-10-13, 2d
+    Gate, policy, broker, coordinator, and ledger path   :crit, hostpath, 2026-10-14, 2d
+
+    section Edge Firmware
+    Gateway guard, immutable fan-out, and fallback       :crit, gateway, 2026-10-14, 3d
+    Endpoint auth, replay store, apply, expiry, and ACK   :crit, endpoint, 2026-10-14, 3d
+    App entry points, Kconfig, and clean safety builds    :crit, builds, 2026-10-15, 2d
+
+    section Tests and Manifests
+    Auth, codec, gate, policy, guard, and replay tests   :crit, tests, 2026-10-13, 3d
+    Safety schema and two manifest pairs                 :crit, manifests, 2026-10-15, 2d
+    Command-path dry run with rejection evidence         :crit, dryrun, 2026-10-16, 1d
+
+    section Physical Evidence
+    One bounded action and two endpoint ACKs              :crit, pilot, 2026-10-16, 1d
+    Observation pause, fallback, and requalification      :crit, stale, 2026-10-17, 1d
+    Endpoint restart and replay rejection                 :crit, replay, 2026-10-18, 1d
+
+    section Week-5 Closure
+    Reconcile, reproduce, and freeze safety evidence      :crit, closure, 2026-10-19, 1d
+    Week 6 begins — evidence fixes only, no features      :milestone, week6, 2026-10-20, 0d
