@@ -1,0 +1,27 @@
+gantt
+    title Week 6 Evidence Freeze and Handoff — 20–26 October 2026
+    dateFormat  YYYY-MM-DD
+    axisFormat  %d %b
+    tickInterval 1day
+
+    section Entry
+    Phase 1–5 gate audit and remote-off branch             :crit, entry, 2026-10-20, 1d
+
+    section Freeze and Preflight
+    Source, manifests, binaries, and repetition queue      :crit, freeze, 2026-10-20, 1d
+    Reproduction rehearsal on archived evidence            :crit, preflight, 2026-10-20, 2d
+    Evidence-defect repair and identity rollover only       :crit, repair, 2026-10-21, 1d
+
+    section Serial Hardware
+    Remaining baseline and load-step repetitions            :crit, physical1, 2026-10-22, 1d
+    Remaining stale-observation repetitions                 :crit, physical2, 2026-10-23, 1d
+    Remaining restart and replay repetitions                :crit, physical3, 2026-10-24, 1d
+
+    section Reproduce and Freeze
+    Reconcile every run and replay the final collection     :crit, replay, 2026-10-22, 4d
+    Dataset, ledger, metrics, and safety-result freeze       :crit, resultfreeze, 2026-10-25, 1d
+
+    section Communicate
+    Negative results, invalid runs, limitations, evidence   :crit, limits, 2026-10-25, 2d
+    Clean-clone rehearsal and presentation freeze            :crit, handoff, 2026-10-26, 1d
+    Delivery window closes — no post-hoc tuning              :milestone, close, 2026-10-27, 0d
