@@ -13,12 +13,13 @@ flowchart TB
     end
 
     subgraph implementation["Source dan test yang ditutup"]
-        tracec["cldt_event_trace.c<br/>init, push, snapshot"] --> tracet["test_event_trace.c"]
-        metricsc["cldt_metrics.c<br/>observe, audit, reconcile"] --> metricst["test_metrics.c"]
+        tracec["cldt_event_trace.c<br/>init, push, pop"] --> tracet["test_event_trace.c<br/>must exit 0, not SKIP"]
+        metricsc["cldt_metrics.c<br/>record, audit, reconcile"] --> metricst["test_metrics.c<br/>must exit 0, not SKIP"]
         queuec["deadline_queue.c<br/>acquire, commit, pop, release, expire"]
         workloadc["workload.c<br/>configure, start, timer, stop"]
-        runtimec["endpoint_runtime.c<br/>local-only init, tasks, drain"]
-        queuec --> workloadc --> runtimec
+        runtimec["endpoint_runtime.c<br/>local-only init, tasks, bounded stop"]
+        binding["existing workload API binding<br/>streams + seed + run + start/stop"]
+        queuec --> workloadc --> binding --> runtimec
     end
 
     subgraph buildmanifest["Build dan manifest"]
@@ -31,9 +32,11 @@ flowchart TB
 
     subgraph evidence["Local evidence closure"]
         pilots["critical-only<br/>bulk-only<br/>critical + bulk pilots"]
-        audit["one release → one local terminal<br/>queue high-water + trace loss visible"]
-        localgate{"local accounting reconciles?"}
-        pilots --> audit --> localgate
+        aggregate["closed-run aggregate<br/>ownership zero + no trace drop<br/>no unresolved item"]
+        deferred["full physical item audit<br/>after Week-3 recorder + sorting"]
+        localgate{"local aggregate gate passes?"}
+        pilots --> aggregate --> localgate
+        aggregate -. "canonical raw trace later" .-> deferred
     end
 
     entry -->|"PASS"| contracts
@@ -43,13 +46,13 @@ flowchart TB
     localonly --> contracts
     localgate -->|"PASS and one-endpoint soak remains stable"| endpointb["Flash upstream ot_cli on endpoint B<br/>attach, record role/parent/partition"]
     localgate -->|"FAIL"| repair["Keep Thread off<br/>repair lifecycle/accounting"]
-    endpointb --> week3["Week 3 entry<br/>project frames + bounded evidence path"]
+    endpointb --> week3["Week 3 source entry<br/>project frames + bounded recorder<br/>item audit before physical baseline"]
 
     classDef contract fill:#312e81,stroke:#a78bfa,color:#f5f3ff;
     classDef code fill:#0c4a6e,stroke:#38bdf8,color:#e0f2fe;
     classDef evidence fill:#14532d,stroke:#22c55e,color:#dcfce7;
     classDef decision fill:#713f12,stroke:#fbbf24,color:#fef3c7;
     class types,traceh,metricsh,queueh,workloadh,runtimeh contract;
-    class tracec,tracet,metricsc,metricst,queuec,workloadc,runtimec,build code;
-    class jsonc,strict,schema,pilots,audit,endpointb,week3 evidence;
+    class tracec,tracet,metricsc,metricst,queuec,workloadc,binding,runtimec,build code;
+    class jsonc,strict,schema,pilots,aggregate,deferred,endpointb,week3 evidence;
     class entry,localgate,localonly,repair decision;

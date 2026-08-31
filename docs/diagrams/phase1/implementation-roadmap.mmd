@@ -18,7 +18,7 @@ flowchart LR
         rcp["ESP-IDF ot_rcp<br/>C6 RCP build + flash"]
         br["ESP-IDF ot_br<br/>S3 host + UART Spinel"]
         cli["ESP-IDF ot_cli<br/>C6 endpoint A attach"]
-        udp["Thread UDP<br/>bidirectional datagram test"]
+        udp["Thread UDP<br/>declared direction + sustained runner"]
         rcp --> br --> cli --> udp
     end
 
@@ -27,10 +27,13 @@ flowchart LR
     toolchain --> rcp
     toolchain --> br
     toolchain --> cli
+    portable --> local["Week-2 local accounting<br/>may start in parallel"]
     portable --> gate{"Day-10 gate"}
     udp --> gate
-    gate -->|"cold boot repeatable + sustained UDP"| week2["Masuk Week 2<br/>local accounting, lalu endpoint B"]
-    gate -->|"belum repeatable"| cut["Pertahankan satu endpoint<br/>potong model dan control depth"]
+    gate -->|"cold boot repeatable + sustained UDP"| endpointb["Endpoint B attachment<br/>may begin after gate"]
+    gate -->|"belum repeatable"| cut["Pertahankan satu endpoint<br/>local accounting may continue;<br/>potong model dan control depth"]
+    local --> week2["Week-2 closure later requires<br/>local accounting + eligible topology"]
+    endpointb --> week2
 
     classDef contract fill:#312e81,stroke:#a78bfa,color:#f5f3ff;
     classDef code fill:#0c4a6e,stroke:#38bdf8,color:#e0f2fe;
@@ -38,5 +41,5 @@ flowchart LR
     classDef decision fill:#713f12,stroke:#fbbf24,color:#fef3c7;
     class wire,auth contract;
     class build,crc,vector,ci code;
-    class bom,toolchain,rcp,br,cli,udp,week2 hardware;
+    class bom,toolchain,rcp,br,cli,udp,local,endpointb,week2 hardware;
     class gate,cut decision;

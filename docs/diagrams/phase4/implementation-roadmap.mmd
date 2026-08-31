@@ -1,0 +1,73 @@
+flowchart TB
+    entry{"Week-3 evidence gate"}
+
+    subgraph contracts["Contract freeze before model bodies"]
+        direction LR
+        payload["Observation payload mapping<br/>trace + MAC + host time"]
+        identity["Prediction / observed identity<br/>run + epoch + exact horizon"]
+        features["Frozen feature allowlists<br/>naive / network / cross-layer"]
+        numerical["Kalman ownership<br/>F H Q R + partial observation rule"]
+        split["Calibration / held-out binding<br/>load-step before and during state"]
+        ownership["Bounded coordinator ownership<br/>inbound bytes + pending horizons"]
+        verification["Deterministic verification<br/>ordering + leakage + matrix cases"]
+        reprocheck["reproduce.py implementation gate<br/>fixtures pass; failures exit nonzero"]
+        payload --> identity --> features --> numerical --> split --> ownership --> verification --> reprocheck
+    end
+
+    subgraph calibration["Non-reportable calibration block"]
+        direction LR
+        baseline["Calibration baseline<br/>same four boards + frozen<br/>load-step-capable firmware"]
+        pilots["Recoverable bulk-step pilots<br/>feasibility only"]
+        fit["Fit on calibration evidence only<br/>network and cross share family"]
+        freeze["Freeze artifact digest, matrices, features,<br/>loss, horizons, bound intervals, seeds"]
+        baseline --> fit
+        pilots --> freeze
+        fit --> freeze
+    end
+
+    subgraph runtime["Held-out physical digital shadow"]
+        direction LR
+        manifest["load-step.jsonc → load-step.json<br/>prediction / none / true / false"]
+        hardware["S3 gateway + C6 RCP + A + B<br/>unchanged channel and placement"]
+        raw["Recorder append raw bytes first<br/>presence + freshness + reconciliation"]
+        models["Three frozen predictions<br/>identical future horizons"]
+        outcome["Completed horizon outcome<br/>no held-out parameter update"]
+        manifest --> hardware --> raw --> models --> outcome
+    end
+
+    subgraph analysis["Frozen Week-4 result"]
+        direction LR
+        replay["reproduce.py Week-4 subset<br/>digest + lifecycle preflight"]
+        paired["Paired horizon scoring<br/>naive / network / cross-layer"]
+        uncertainty["Whole-run uncertainty<br/>within-run blocks remain secondary"]
+        decision{"LCB 0.95 of improvement<br/>exceeds 0.15?"}
+        positive["Positive result<br/>LCB exceeds 0.15"]
+        inconclusive["Inconclusive result<br/>point exceeds 0.15; LCB does not"]
+        negative["Negative or non-evaluable result<br/>threshold unmet / denominator guarded"]
+        report["Freeze the selected shadow result<br/>with complete evidence"]
+        replay --> paired --> uncertainty --> decision
+        decision -->|"YES"| positive --> report
+        decision -->|"NO: point above 0.15"| inconclusive --> report
+        decision -->|"NO: point at/below 0.15<br/>or ratio non-evaluable"| negative --> report
+    end
+
+    entry -->|"PASS: repeated raw evidence reconciles"| contracts
+    entry -->|"FAIL / ambiguous"| repair["Repair Phase 1-3 evidence path<br/>no Week-4 model claim"]
+    contracts -->|"identity, bounded ownership,<br/>tests, and replay preflight closed"| calibration
+    contracts -->|"unresolved identity / split / step"| blocked["Keep load-step manifest template<br/>no held-out run"]
+    freeze --> runtime
+    outcome --> replay
+    report --> week5["Week 5 may begin only with<br/>frozen result; actuation still disabled"]
+    inconclusive --> preserve["Non-positive outcome retained<br/>remote actuation remains disabled"]
+    negative --> preserve
+
+    classDef contract fill:#312e81,stroke:#a78bfa,color:#f5f3ff;
+    classDef calibration fill:#134e4a,stroke:#34d399,color:#d1fae5;
+    classDef runtime fill:#0c4a6e,stroke:#22d3ee,color:#cffafe;
+    classDef analysis fill:#14532d,stroke:#22c55e,color:#dcfce7;
+    classDef decision fill:#713f12,stroke:#fbbf24,color:#fef3c7;
+    class payload,identity,features,numerical,split,ownership,verification,reprocheck contract;
+    class baseline,pilots,fit,freeze calibration;
+    class manifest,hardware,raw,models,outcome runtime;
+    class replay,paired,uncertainty,positive,inconclusive,negative,report,week5,preserve analysis;
+    class entry,decision,repair,blocked decision;
